@@ -27,6 +27,9 @@
         "i2s_stream.h": "c",
         "esp_peripherals.h": "c",
         "audio_hal.h": "c",
-        "wav_decoder.h": "c"
+        "wav_decoder.h": "c",
+        "audio_error.h": "c",
+        "board_pins_config.h": "c",
+        "es8388.h": "c"
     }
 }
