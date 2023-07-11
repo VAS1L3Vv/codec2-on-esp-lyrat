@@ -21,6 +21,8 @@
 #include "codec2.h"
 #include "LoRa.h"
 #include <ButterworthFilter.h>
+#define SPEECH_BUFFER_SIZE 160
+#define BIT_BUFFER_SIZE 64
 
 #define I2S_STREAM_CUSTOM_READ_CFG() {                                          \
     .type = AUDIO_STREAM_READER,                                                \

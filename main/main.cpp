@@ -7,13 +7,6 @@ extern "C" void app_main()
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
-
-    audio_element_cfg_t el_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
-    i2s_reader = audio_element_init(&el_cfg);
-    i2s_writer = audio_element_init(&el_cfg);
-
-    audio_element_setinfo(i2s_reader, &el_info);
-    audio_element_setinfo(i2s_writer, &el_info);
     
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
@@ -33,7 +26,7 @@ extern "C" void app_main()
     i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "4) Configured I2S stream write");
-
+    
     initArduino();
     Serial.begin(115200);
     while(!Serial){;}
