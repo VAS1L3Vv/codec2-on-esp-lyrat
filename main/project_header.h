@@ -26,12 +26,12 @@
     .type = AUDIO_STREAM_READER,                                                \
     .i2s_config = {                                                             \
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
-        .sample_rate = 48000,                                                   \
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                           \
+        .sample_rate = 8000,                                                   \
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_8BIT,                           \
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
-        .dma_buf_count = 5,                                                     \
+        .dma_buf_count = 2,                                                     \
         .dma_buf_len = 900,                                                     \
         .use_apll = true,                                                       \
         .tx_desc_auto_clear = true,                                             \
@@ -48,7 +48,7 @@
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
     .need_expand = false,                                                       \
-    .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
+    .expand_src_bits = I2S_BITS_PER_SAMPLE_8BIT,                               \
     .buffer_len = 900,                                                          \
 }
 
@@ -57,12 +57,12 @@
      .type = AUDIO_STREAM_WRITER,                                               \
     .i2s_config = {                                                             \
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
-        .sample_rate = 48000,                                                   \
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                           \
+        .sample_rate = 8000,                                                   \
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_8BIT,                           \
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
-        .dma_buf_count = 5,                                                     \
+        .dma_buf_count = 2,                                                     \
         .dma_buf_len = 900,                                                     \
         .use_apll = true,                                                       \
         .tx_desc_auto_clear = true,                                             \
@@ -79,7 +79,7 @@
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
     .need_expand = false,                                                       \
-    .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
+    .expand_src_bits = I2S_BITS_PER_SAMPLE_8BIT,                               \
     .buffer_len = 900,                                                          \
 }
 

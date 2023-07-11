@@ -6,25 +6,14 @@ extern "C" void app_main()
     audio_pipeline_handle_t pipeline; 
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
-    audio_element_handle_t encoder2;
-    audio_element_handle_t decoder2;
     audio_board_handle_t board_handle = audio_board_init();
 
     audio_element_cfg_t el_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     i2s_reader = audio_element_init(&el_cfg);
     i2s_writer = audio_element_init(&el_cfg);
-    encoder2 = audio_element_init(&el_cfg);
-    decoder2 = audio_element_init(&el_cfg);
-
-    audio_element_info_t el_info = AUDIO_ELEMENT_INFO_DEFAULT();
-    el_info.sample_rates = 48000;
-    el_info.bps = 1200;
-    el_info.total_bytes = 6400;
 
     audio_element_setinfo(i2s_reader, &el_info);
     audio_element_setinfo(i2s_writer, &el_info);
-    audio_element_setinfo(encoder2, &el_info);
-    audio_element_setinfo(decoder2, &el_info);
     
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
@@ -51,12 +40,10 @@ extern "C" void app_main()
 
     audio_pipeline_register(pipeline, i2s_reader, "i2sr");
     audio_pipeline_register(pipeline, i2s_writer, "i2sw");
-    audio_pipeline_register(pipeline, encoder2, "en2");
-    audio_pipeline_register(pipeline, decoder2, "de2");
     ESP_LOGI(TAG, "7) Registered pipeline elements");
 
-    const char *link_tag[4] = {"i2sr","en2", "de2","i2sw"};
-    audio_pipeline_link(pipeline, &link_tag[0], 4);
+    const char *link_tag[2] = {"i2sr","i2sw"};
+    audio_pipeline_link(pipeline, &link_tag[0], 2);
     ESP_LOGI(TAG, "8) successfully linked together [codec_chip]--> i2s_read--> codec2--> i2s_write --> [codec chip]");
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG(); // ненважно
@@ -72,11 +59,11 @@ extern "C" void app_main()
     while (1) 
     {
     audio_event_iface_msg_t msg;
-    // static int seconds_played = 1;
-    // vTaskDelay(1000/portTICK_PERIOD_MS);
-    // ESP_LOGI(TAG,"System running for %d seconds", seconds_played);
-    // Serial.println("loop");
-    // seconds_played++;
+        static int seconds_played = 1;
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        ESP_LOGI(TAG,"System running for %d seconds", seconds_played);
+        Serial.println("loop");
+        seconds_played++;
     }
     
     ESP_LOGI(TAG, "[ 7 ] Stop audio_pipeline"); // сброс всех процессов
