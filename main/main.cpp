@@ -26,6 +26,8 @@ extern "C" void app_main()
     i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "4) Configured I2S stream write");
+
+    
     
     initArduino();
     Serial.begin(115200);
