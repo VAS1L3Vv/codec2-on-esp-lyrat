@@ -1,0 +1,19 @@
+{
+  "C_Cpp.intelliSenseEngine": "Tag Parser",
+  "idf.flashType": "UART",
+  "idf.portWin": "COM4",
+  "idf.adapterTargetName": "esp32",
+  "files.associations": {
+    "periph_sdcard.h": "c",
+    "project_header.h": "c",
+    "arduino.h": "c",
+    "stdbool.h": "c",
+    "audio_idf_version.h": "c",
+    "bluetoothserial.h": "c",
+    "codec2.h": "c",
+    "board.h": "c",
+    "string.h": "c",
+    "wav_decoder.h": "c",
+    "audio_element.h": "c"
+  }
+}
