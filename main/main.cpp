@@ -26,8 +26,6 @@ extern "C" void app_main()
     i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "4) Configured I2S stream write");
-
-    
     
     initArduino();
     Serial.begin(115200);
@@ -42,10 +40,10 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "8) successfully linked together [codec_chip]--> i2s_read--> codec2--> i2s_write --> [codec chip]");
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG(); // ненважно
-    audio_event_iface_handle_t event = audio_event_iface_init(&evt_cfg); 
+    audio_event_iface_handle_t event = audio_event_iface_init(&event_cfg); 
     ESP_LOGI(TAG, "9) Set up  event listener");
 
-    audio_pipeline_set_listener(pipeline, evt);
+    audio_pipeline_set_listener(pipeline, event);
     ESP_LOGI(TAG, "10) Set listener event from pipeline");
 
     audio_pipeline_run(pipeline);
@@ -71,7 +69,7 @@ extern "C" void app_main()
     audio_pipeline_remove_listener(pipeline);
     /* Stop all periph before removing the listener */
     /* Make sure audio_pipeline_remove_listener & audio_event_iface_remove_listener are called before destroying event_iface */
-    audio_event_iface_destroy(evt);
+    audio_event_iface_destroy(event);
     /* Release all resources */
     audio_pipeline_deinit(pipeline);
     audio_element_deinit(i2s_reader); 
