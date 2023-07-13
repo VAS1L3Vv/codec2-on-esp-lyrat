@@ -86,7 +86,7 @@
 void print_seconds(void*);
 void encode(void*);
 
-#define SPEECH_BUFFER_SIZE 160
+#define SPEECH_BUFFER_SIZE 160s
 #define ENCODE_FRAME_BITS 64
 #define ENCODE_FRAME_BYTES 8
 
@@ -165,9 +165,7 @@ i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     
     while(1) 
     {
-        esp_err_t out_readbuffer_done = audio_element_wait_for_buffer(i2s_reader,SPEECH_BUFFER_SIZE, 0);
-        int bytes_read = rb_read(speech_read_buffer, (char*)speech, SPEECH_BUFFER_SIZE, 0);
-        printf("total %d bytes read \n", bytes_read);
+        
     }
     
     ESP_LOGI(TAG, " Stopped audio_pipeline"); // сброс всех процессов
