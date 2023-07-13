@@ -100,9 +100,9 @@ extern "C" void app_main()
     }
     
     ESP_LOGI(TAG, " Stopped audio_pipeline"); // сброс всех процессов
-    audio_pipeline_stop(pipeline);
-    audio_pipeline_wait_for_stop(pipeline);
-    audio_pipeline_terminate(pipeline);
-    audio_pipeline_remove_listener(pipeline);
+    audio_element_stop(i2s_reader);
+    audio_element_wait_for_stop(i2s_reader);
+    audio_element_terminate(i2s_reader);
+    audio_element_remove_listener(i2s_reader);
     audio_element_deinit(i2s_reader); 
     }
