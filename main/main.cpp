@@ -87,14 +87,13 @@ extern "C" void app_main()
     audio_event_iface_handle_t read_event = audio_event_iface_init(&event_cfg);
     ESP_LOGI(TAG, "Configured event listener \n");
 
+    audio_element_msg_set_listener(i2s_reader, read_event);
+    ESP_LOGI(TAG, "Set listener event from pipeline \n");
+
     esp_err_t i2s_init = audio_element_run(audio_element_handle_t i2s_reader);
     if (i2s_init == ESP_OK) ESP_LOGI(TAG, "I2S READER STARTED \n");
     else ESP_LOGI(TAG, "I2S READER FAIL! \n");
 
-
-    audio_element_msg_set_listener(i2s_reader, read_event);
-    ESP_LOGI(TAG, "Set listener event from pipeline \n");
-    
     while(1) 
     {
         
