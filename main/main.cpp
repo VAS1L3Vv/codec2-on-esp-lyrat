@@ -82,7 +82,7 @@ extern "C" void app_main()
     Serial.begin(115200);
     while(!Serial){;}
 
-    audio_event_iface_cfg_t event_cfg = DEFAULT_AUDIO;
+    audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
     audio_event_iface_handle_t read_event = audio_event_iface_init(&event_cfg);
     ESP_LOGI(TAG, "9) Set up  event listener");
 
