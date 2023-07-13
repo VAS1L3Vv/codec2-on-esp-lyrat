@@ -68,58 +68,39 @@ extern "C" void app_main()
 
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
-    ESP_LOGI(TAG, "Created Handles");
+    ESP_LOGI(TAG, "Created Handles \n");
 
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START);
-    ESP_LOGI(TAG, "Init codec chip");
+    ESP_LOGI(TAG, "Init codec chip\n");
 
     i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
     audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
-    ESP_LOGI(TAG, "3) Configured I2S stream read");
+    ESP_LOGI(TAG, "Configured I2S stream read \n");
 
     initArduino();
     Serial.begin(115200);
     while(!Serial){;}
+    ESP_LOGI(TAG, "Init Arduino \n");
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
     audio_event_iface_handle_t read_event = audio_event_iface_init(&event_cfg);
-    ESP_LOGI(TAG, "9) Set up  event listener");
+    ESP_LOGI(TAG, "Set up  event listener \n");
+
+    
 
     audio_element_msg_set_listener(i2s_reader, read_event);
-    ESP_LOGI(TAG, "10) Set listener event from pipeline");
+    ESP_LOGI(TAG, "Set listener event from pipeline \n");
     
     while(1) 
     {
-        esp_err_t out_readbuffer_done = audio_element_wait_for_buffer(i2s_reader,SPEECH_BUFFER_SIZE, 0);
-        int bytes_read = rb_read(speech_read_buffer, (char*)speech, SPEECH_BUFFER_SIZE, 0);
-        printf("total %d bytes read \n", bytes_read);
+        
     }
     
     ESP_LOGI(TAG, " Stopped audio_pipeline"); // сброс всех процессов
     audio_pipeline_stop(pipeline);
     audio_pipeline_wait_for_stop(pipeline);
     audio_pipeline_terminate(pipeline);
-    audio_pipeline_unregister(pipeline, i2s_reader);
-    audio_pipeline_unregister(pipeline, i2s_writer);
-    /* Terminate the pipeline before removing the listener */
     audio_pipeline_remove_listener(pipeline);
-    /* Stop all periph before removing the listener */
-    /* Make sure audio_pipeline_remove_listener & audio_event_iface_remove_listener are called before destroying event_iface */
-    audio_event_iface_destroy(pipeline_event);
-    /* Release all resources */
-    audio_pipeline_deinit(pipeline);
     audio_element_deinit(i2s_reader); 
-    audio_element_deinit(i2s_writer);
     }
-
-    void print_seconds(void *)
-{
-    while(1)
-    {
-        static int seconds_played = 1;
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-        printf(TAG,"System running for %d seconds", seconds_played);
-        seconds_played++;
-    }
-}
