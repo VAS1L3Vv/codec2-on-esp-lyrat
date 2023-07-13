@@ -83,24 +83,8 @@
     .buffer_len = 900,                                                          \
 }
 
-void print_seconds()
-{
-    while(1)
-    {
-        static int seconds_played = 1;
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-        printf(TAG,"System running for %d seconds", seconds_played);
-        seconds_played++;
-    }
-}
-
-void print_samples(int8_t *speech)
-{
-    while(1)
-    {
-    printf("[%d]:\t%d" ,i, speech[i] );
-    }
-}
+void print_seconds(void*);
+void encode(void*);
 
 #define SPEECH_BUFFER_SIZE 160
 #define ENCODE_FRAME_BITS 64
@@ -115,34 +99,38 @@ void * context_ptr = NULL;
 
 extern "C" void app_main()
 {
-    audio_pipeline_handle_t pipeline; 
-    audio_element_handle_t i2s_reader;
-    audio_element_handle_t i2s_writer;
-    audio_board_handle_t board_handle = audio_board_init();
-    
+audio_pipeline_handle_t pipeline; 
+audio_element_handle_t i2s_reader;
+audio_element_handle_t i2s_writer;
+audio_board_handle_t board_handle = audio_board_init();
+
+ringbuf_handle_t speech_read_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
+ringbuf_handle_t speech_write_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
+ringbuf_handle_t enc2_out_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
+ringbuf_handle_t dec2_in_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
+
+audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
+i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
+i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
+
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START);
     ESP_LOGI(TAG, "1) Configured and initialised codec chip");
-
-    audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
+    
     pipeline = audio_pipeline_init(&pipeline_cfg);
     mem_assert(pipeline);
     ESP_LOGI(TAG, "2) Initialised pipeline");
 
-    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
     ESP_LOGI(TAG, "3) Configured I2S stream read");
 
-    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "4) Configured I2S stream write");
-    
-    ringbuf_handle_t speech_read_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
-    ringbuf_handle_t speech_write_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
-    ringbuf_handle_t enc2_out_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
-    ringbuf_handle_t dec2_in_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
+
+    audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
+    audio_element_set_input_ringbuf(i2s_writer, speech_write_buffer);
 
     initArduino();
     Serial.begin(115200);
@@ -162,26 +150,27 @@ extern "C" void app_main()
     audio_event_iface_handle_t write_event = audio_event_iface_init(&event_cfg);
     ESP_LOGI(TAG, "9) Set up  event listener");
 
-    audio_pipeline_set_listener(pipeline, event);
-    audio_element_msg_set_listener(audio_element_handle_t i2s_reader, read_event);
-    audio_element_msg_set_listener(audio_element_handle_t i2s_writer, write_event);
+    audio_pipeline_set_listener(pipeline, pipeline_event);
+    audio_element_msg_set_listener(i2s_reader, read_event);
+    audio_element_msg_set_listener(i2s_writer, write_event);
     ESP_LOGI(TAG, "10) Set listener event from pipeline");
+
+    // main code
+    audio_pipeline_reset_ringbuffer(pipeline);
+    // xTaskCreate(print_seconds, "print_seconds", 64, NULL, 10, &TaskHandle);
+    // xTaskCreate(encode, "print_samples", 64, NULL, 10, &TaskHandle);
 
     audio_pipeline_run(pipeline);
     ESP_LOGI(TAG, "11) Started audio pipeline tasks");
-    xTaskCreatePinnedToCore(print_seconds, "print_seconds", 64, NULL, 10, &TaskHandle, 1);
-    xTaskCreatePinnedToCore(print_samples, "print_samples", 64, NULL, 10, &TaskHandle, 1);
-
-    while (1) 
+    
+    while(1) 
     {
-        audio_event_iface_msg_t msg;
-        static int seconds_played = 1;
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-        ESP_LOGI(TAG,"System running for %d seconds", seconds_played);
-        seconds_played++;
+        esp_err_t out_readbuffer_done = audio_element_wait_for_buffer(i2s_reader,SPEECH_BUFFER_SIZE, 0);
+        int bytes_read = rb_read(speech_read_buffer, (char*)speech, SPEECH_BUFFER_SIZE, 0);
+        printf("total %d bytes read \n", bytes_read);
     }
     
-    ESP_LOGI(TAG, "[ 7 ] Stop audio_pipeline"); // сброс всех процессов
+    ESP_LOGI(TAG, " Stopped audio_pipeline"); // сброс всех процессов
     audio_pipeline_stop(pipeline);
     audio_pipeline_wait_for_stop(pipeline);
     audio_pipeline_terminate(pipeline);
@@ -191,9 +180,20 @@ extern "C" void app_main()
     audio_pipeline_remove_listener(pipeline);
     /* Stop all periph before removing the listener */
     /* Make sure audio_pipeline_remove_listener & audio_event_iface_remove_listener are called before destroying event_iface */
-    audio_event_iface_destroy(event);
+    audio_event_iface_destroy(pipeline_event);
     /* Release all resources */
     audio_pipeline_deinit(pipeline);
     audio_element_deinit(i2s_reader); 
     audio_element_deinit(i2s_writer);
     }
+
+    void print_seconds(void *)
+{
+    while(1)
+    {
+        static int seconds_played = 1;
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf(TAG,"System running for %d seconds", seconds_played);
+        seconds_played++;
+    }
+}
