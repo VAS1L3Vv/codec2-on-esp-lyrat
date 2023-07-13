@@ -84,10 +84,10 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "Init Arduino \n");
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
-    audio_event_iface_handle_t read_event = audio_event_iface_init(&event_cfg);
-    ESP_LOGI(TAG, "Configured event listener \n");
+    audio_event_iface_handle_t event = audio_event_iface_init(&event_cfg); // this event handle is the listener
+    ESP_LOGI(TAG, "Set up event listener \n");
     
-    audio_element_msg_set_listener(i2s_reader, read_event);
+    audio_element_msg_set_listener(i2s_reader, event); // the event handle of the element which will be sent to the listener
     ESP_LOGI(TAG, "Set listener event from pipeline \n");
 
     esp_err_t i2s_init = audio_element_run(i2s_reader);
@@ -95,15 +95,15 @@ extern "C" void app_main()
     else ESP_LOGI(TAG, "I2S READER FAIL! \n");
 
     printf("buffer has total of %d bytes \n", rb_get_size(audio_element_get_output_ringbuf(i2s_reader)));
-    printf("total of %d bytes available \n", rb_bytes_available(audio_element_get_output_ringbuf(i2s_reader)));
-    printf("total of %d bytes filled \n", rb_bytes_filled(audio_element_get_output_ringbuf(i2s_reader)));
+
     int sec_played = 0;
     while (1) 
     {
         audio_event_iface_msg_t msg;
-        if (audio_event_iface_listen(evt, &msg, 1000 / portTICK_RATE_MS) != ESP_OK) 
+        if (audio_event_iface_listen(event, &msg, 1000 / portTICK_RATE_MS) != ESP_OK) 
         {
-            second_recorded ++;
+            printf("total of %d bytes available \n", rb_bytes_available(audio_element_get_output_ringbuf(i2s_reader)));
+            printf("total of %d bytes filled \n", rb_bytes_filled(audio_element_get_output_ringbuf(i2s_reader)));
         }
     }
     
