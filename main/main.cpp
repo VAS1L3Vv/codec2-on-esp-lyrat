@@ -94,14 +94,23 @@ extern "C" void app_main()
     if (i2s_init == ESP_OK) ESP_LOGI(TAG, "I2S READER STARTED \n");
     else ESP_LOGI(TAG, "I2S READER FAIL! \n");
 
-    while(1) 
-     { 
-        static int sec_played = 0;
+    printf("buffer has total of %d bytes \n", rb_get_size(audio_element_get_output_ringbuf(i2s_reader)));
+    printf("total of %d bytes available \n", rb_bytes_available(audio_element_get_output_ringbuf(i2s_reader)));
+    printf("total of %d bytes filled \n", rb_bytes_filled(audio_element_get_output_ringbuf(i2s_reader)));
+    int sec_played = 0;
+    while (1) 
+    {
+        audio_event_iface_msg_t msg;
+        if (audio_event_iface_listen(evt, &msg, 1000 / portTICK_RATE_MS) != ESP_OK) 
+        {
+            second_recorded ++;
+        }
+    }
+    
+       /* static int sec_played = 0;
         delay(1000);
         printf("on for %d seconds \n", sec_played);
-        sec_played++;
-     }
-    
+        sec_played++; */
     ESP_LOGI(TAG, " Stopped audio_pipeline"); // сброс всех процессов
     audio_element_stop(i2s_reader);
     audio_element_wait_for_stop(i2s_reader);
