@@ -88,7 +88,7 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "Set up event listener \n");
     
     audio_element_msg_set_listener(i2s_reader, event); // the event handle of the element which will be sent to the listener
-    ESP_LOGI(TAG, "Set listener event from pipeline \n");
+    ESP_LOGI(TAG, "Set listener event from reader \n");
 
     esp_err_t i2s_init = audio_element_run(i2s_reader);
     if (i2s_init == ESP_OK) ESP_LOGI(TAG, "I2S READER STARTED \n");
@@ -96,15 +96,18 @@ extern "C" void app_main()
 
     printf("buffer has total of %d bytes \n", rb_get_size(audio_element_get_output_ringbuf(i2s_reader)));
 
-    int sec_played = 0;
+   // int sec_played = 0;
     while (1) 
     {
-        audio_event_iface_msg_t msg;
-        if (audio_event_iface_listen(event, &msg, 1000 / portTICK_RATE_MS) != ESP_OK) 
+          audio_event_iface_msg_t msg;
+        esp_err_t ret = audio_event_iface_listen(event, &msg, 0);
+        if (ret != ESP_OK)
         {
+            printf("No msg");
+            continue;
+        }
             printf("total of %d bytes available \n", rb_bytes_available(audio_element_get_output_ringbuf(i2s_reader)));
             printf("total of %d bytes filled \n", rb_bytes_filled(audio_element_get_output_ringbuf(i2s_reader)));
-        }
     }
     
        /* static int sec_played = 0;
@@ -115,6 +118,6 @@ extern "C" void app_main()
     audio_element_stop(i2s_reader);
     audio_element_wait_for_stop(i2s_reader);
     audio_element_terminate(i2s_reader);
-    audio_element_msg_remove_listener(i2s_reader, read_event);
+    audio_element_msg_remove_listener(i2s_reader, event);
     audio_element_deinit(i2s_reader); 
     }
