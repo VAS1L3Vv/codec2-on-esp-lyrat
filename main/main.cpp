@@ -86,11 +86,11 @@
 void print_seconds(void*);
 void encode(void*);
 
-#define SPEECH_BUFFER_SIZE 160s
+#define SPEECH_BUFFER_SIZE 160
 #define ENCODE_FRAME_BITS 64
 #define ENCODE_FRAME_BYTES 8
 
-static const char *TAG = "MONITORING";
+static char *TAG = "MONITORING";
 struct CODEC2* codec2_state;
 int8_t speech[SPEECH_BUFFER_SIZE];
 TaskHandle_t TaskHandle = NULL;
@@ -112,6 +112,8 @@ ringbuf_handle_t dec2_in_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
 audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
 i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
 i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
+esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
+esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
 
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
@@ -129,8 +131,6 @@ i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "4) Configured I2S stream write");
 
-    audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
-    audio_element_set_input_ringbuf(i2s_writer, speech_write_buffer);
 
     initArduino();
     Serial.begin(115200);
@@ -140,6 +140,9 @@ i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     audio_pipeline_register(pipeline, i2s_writer, "i2sw");
     ESP_LOGI(TAG, "7) Registered pipeline elements");
 
+    audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
+    audio_element_set_input_ringbuf(i2s_writer, speech_write_buffer);
+
     const char *link_tag[2] = {"i2sr","i2sw"};
     audio_pipeline_link(pipeline, &link_tag[0], 2);
     ESP_LOGI(TAG, "8) successfully linked together [codec_chip]--> i2s_read--> codec2--> i2s_write --> [codec chip]");
@@ -148,24 +151,31 @@ i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     audio_event_iface_handle_t pipeline_event = audio_event_iface_init(&event_cfg);
     audio_event_iface_handle_t read_event = audio_event_iface_init(&event_cfg);
     audio_event_iface_handle_t write_event = audio_event_iface_init(&event_cfg);
+
     ESP_LOGI(TAG, "9) Set up  event listener");
 
     audio_pipeline_set_listener(pipeline, pipeline_event);
     audio_element_msg_set_listener(i2s_reader, read_event);
     audio_element_msg_set_listener(i2s_writer, write_event);
+    audio_event_iface_set_listener(esp_periph_set_get_event_iface(set), pipeline_event);
     ESP_LOGI(TAG, "10) Set listener event from pipeline");
-
-    // main code
-    audio_pipeline_reset_ringbuffer(pipeline);
-    // xTaskCreate(print_seconds, "print_seconds", 64, NULL, 10, &TaskHandle);
-    // xTaskCreate(encode, "print_samples", 64, NULL, 10, &TaskHandle);
 
     audio_pipeline_run(pipeline);
     ESP_LOGI(TAG, "11) Started audio pipeline tasks");
     
-    while(1) 
+     while (1)
     {
+        audio_event_iface_msg_t msg;
+        audio_pipeline_reset_ringbuffer(pipeline);
+        esp_err_t ret = audio_event_iface_listen(pipeline_event, &msg, 1);
+        audio_pipeline_resume(pipeline);
+        delay(1000);
+        if (ret != ESP_OK) {
+            continue;
+        }
         
+    printf("total of %d bytes available \n", rb_bytes_available(audio_element_get_output_ringbuf(i2s_reader)));
+    printf("total of %d bytes filled \n", rb_bytes_filled(audio_element_get_output_ringbuf(i2s_reader)));
     }
     
     ESP_LOGI(TAG, " Stopped audio_pipeline"); // сброс всех процессов
@@ -177,12 +187,15 @@ i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     /* Terminate the pipeline before removing the listener */
     audio_pipeline_remove_listener(pipeline);
     /* Stop all periph before removing the listener */
+    esp_periph_set_stop_all(set);
+    audio_event_iface_remove_listener(esp_periph_set_get_event_iface(set), pipeline_event);
     /* Make sure audio_pipeline_remove_listener & audio_event_iface_remove_listener are called before destroying event_iface */
     audio_event_iface_destroy(pipeline_event);
     /* Release all resources */
     audio_pipeline_deinit(pipeline);
     audio_element_deinit(i2s_reader); 
     audio_element_deinit(i2s_writer);
+    esp_periph_set_destroy(set);
     }
 
     void print_seconds(void *)
