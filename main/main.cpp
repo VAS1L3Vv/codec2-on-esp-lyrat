@@ -20,6 +20,7 @@
 #include "codec2.h"
 #include "LoRa.h"
 #include <ButterworthFilter.h>
+#include "raw_stream.h"
 
 
 #define I2S_STREAM_CUSTOM_READ_CFG() {                                          \
@@ -29,7 +30,7 @@
         .sample_rate = 8000,                                                    \
         .bits_per_sample = I2S_BITS_PER_SAMPLE_8BIT,                            \
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
-        .communication_format = I2S_COMM_FORMAT_STAND_I2S,                      \
+        .communication_format = I2S_COMM_FORMAT_STAND_PCM_SHORT,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 3,                                                     \
         .dma_buf_len = 900,                                                     \
@@ -60,7 +61,7 @@
         .sample_rate = 8000,                                                    \
         .bits_per_sample = I2S_BITS_PER_SAMPLE_8BIT,                            \
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
-        .communication_format = I2S_COMM_FORMAT_STAND_I2S,                      \
+        .communication_format = I2S_COMM_FORMAT_STAND_PCM_SHORT,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 3,                                                     \
         .dma_buf_len = 900,                                                     \
@@ -166,14 +167,7 @@ esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
      while (1)
     {
         audio_event_iface_msg_t msg;
-        audio_pipeline_reset_ringbuffer(pipeline);
-        esp_err_t ret = audio_event_iface_listen(pipeline_event, &msg, 1);
-        audio_pipeline_resume(pipeline);
-        delay(1000);
-        if (ret != ESP_OK) {
-            continue;
-        }
-        
+        esp_err_t ret = audio_event_iface_listen(pipeline_event, &msg, 1000/ portTICK_RATE_MS);
     printf("total of %d bytes available \n", rb_bytes_available(audio_element_get_output_ringbuf(i2s_reader)));
     printf("total of %d bytes filled \n", rb_bytes_filled(audio_element_get_output_ringbuf(i2s_reader)));
     }
