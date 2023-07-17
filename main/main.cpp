@@ -29,7 +29,7 @@
         .sample_rate = 8000,                                                    \
         .bits_per_sample = I2S_BITS_PER_SAMPLE_8BIT,                            \
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
-        .communication_format = I2S_COMM_FORMAT_STAND_I2S,                      \
+        .communication_format = I2S_COMM_FORMAT_STAND_PCM_SHORT,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 3,                                                     \
         .dma_buf_len = 900,                                                     \
@@ -60,7 +60,7 @@
         .sample_rate = 8000,                                                    \
         .bits_per_sample = I2S_BITS_PER_SAMPLE_8BIT,                            \
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
-        .communication_format = I2S_COMM_FORMAT_STAND_I2S,                      \
+        .communication_format = I2S_COMM_FORMAT_STAND_PCM_SHORT,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 3,                                                     \
         .dma_buf_len = 900,                                                     \
