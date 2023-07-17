@@ -107,7 +107,6 @@ extern "C" void app_main()
     audio_element_handle_t i2s_writer;
     ringbuf_handle_t speech_read_buffer;
     ringbuf_handle_t enc2_frame_bits;
-    ringbuf_handle_t dec2_frame_bits;
     ringbuf_handle_t speech_write_buffer;
     audio_board_handle_t board_handle = audio_board_init();
 
@@ -117,7 +116,7 @@ extern "C" void app_main()
     i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
-
+    
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
@@ -138,6 +137,8 @@ extern "C" void app_main()
     enc2_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
     speech_write_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
     ESP_LOGI(TAG, "Created ringbuffers \n");
+
+
 
     audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
     audio_element_set_input_ringbuf(codec2_enc, speech_read_buffer);
@@ -199,8 +200,8 @@ extern "C" void app_main()
     /* Release all resources */
     audio_pipeline_deinit(pipeline);
     audio_element_deinit(i2s_reader); 
-    audio_pipeline_deinit(pipeline, codec2_enc);
-    audio_pipeline_deinit(pipeline, codec2_dec);
+    audio_element_deinit(codec2_enc);
+    audio_element_deinit(codec2_dec);
     audio_element_deinit(i2s_writer);
     esp_periph_set_destroy(set);
     }
