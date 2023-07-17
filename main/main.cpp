@@ -99,38 +99,46 @@ void * context_ptr = NULL;
 
 extern "C" void app_main()
 {
-audio_pipeline_handle_t pipeline; 
-audio_element_handle_t i2s_reader;
-audio_element_handle_t i2s_writer;
-audio_board_handle_t board_handle = audio_board_init();
+    // handles
+    audio_pipeline_handle_t pipeline; 
+    audio_element_handle_t i2s_reader;
+    audio_element_handle_t codec2_enc;
+    audio_element_handle_t codec2_dec;
+    audio_element_handle_t i2s_writer;
+    ringbuf_handle_t speech_read_buffer;
+    ringbuf_handle_t enc2_frame_bits;
+    ringbuf_handle_t dec2_frame_bits;
+    ringbuf_handle_t speech_write_buffer;
+    audio_board_handle_t board_handle = audio_board_init();
 
-ringbuf_handle_t speech_read_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
-ringbuf_handle_t speech_write_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
-ringbuf_handle_t enc2_out_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
-ringbuf_handle_t dec2_in_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
-
-audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
-i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
-i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
-esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
-esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
+    // configs
+    audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
+    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
+    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
+    esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
+    esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
 
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START);
-    ESP_LOGI(TAG, "1) Configured and initialised codec chip");
-    
+    ESP_LOGI(TAG, "Configured and initialised codec chip");
+
     pipeline = audio_pipeline_init(&pipeline_cfg);
     mem_assert(pipeline);
-    ESP_LOGI(TAG, "2) Initialised pipeline");
+    ESP_LOGI(TAG, "Initialised pipeline");
 
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
-    ESP_LOGI(TAG, "3) Configured I2S stream read");
+    ESP_LOGI(TAG, "Configured I2S stream read");
 
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
-    ESP_LOGI(TAG, "4) Configured I2S stream write");
+    ESP_LOGI(TAG, "Configured I2S stream write");
 
+    speech_read_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
+    enc2_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
+    dec2_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
+    speech_write_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
+    ESP_LOGI(TAG, "");
 
     initArduino();
     Serial.begin(115200);
