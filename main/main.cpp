@@ -96,6 +96,10 @@ int8_t speech[SPEECH_BUFFER_SIZE];
 TaskHandle_t TaskHandle = NULL;
 void * context_ptr = NULL;
 
+static esp_err_t el_open(audio_element_handle_t self);
+static int el_process(audio_element_handle_t self, char *in_buffer, int in_len);
+static esp_err_t el_close(audio_element_handle_t self);
+static esp_err_t el_destroy(audio_element_handle_t self);
 
 extern "C" void app_main()
 {
@@ -113,7 +117,6 @@ extern "C" void app_main()
     audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
     i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
     i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
-    audio_element_cfg_t el_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
     
@@ -126,14 +129,21 @@ extern "C" void app_main()
     pipeline = audio_pipeline_init(&pipeline_cfg);
     mem_assert(pipeline);
     ESP_LOGI(TAG, "Initialised pipeline \n");
-
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
+
     ESP_LOGI(TAG, "Configured I2S stream read \n");
 
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "Configured I2S stream write \n");
 
+    audio_element_cfg_t el_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
+    el_cfg.open = el_open
+    el_cfg.process = el_process;
+    el_cfg.close = el_close;
+    el_cfg.destroy = el_destroy;
+    el_cfg.tag = "el_tag";
     el = audio_element_init(&el_cfg);
+
     ESP_LOGI(TAG, "Configured element \n");
 
     speech_read_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
@@ -201,3 +211,36 @@ extern "C" void app_main()
     audio_element_deinit(i2s_writer);
     esp_periph_set_destroy(set);
     }
+
+    static esp_err_t el_open(audio_element_handle_t self)
+{
+    ESP_LOGD(TAG, "el_open");
+    return ESP_OK;
+}
+
+static int el_process(audio_element_handle_t self, char *in_buffer, int in_len)
+{
+    int r_size = audio_element_input(self, in_buffer, in_len);
+    int out_len = r_size;
+    if (r_size > 0) {
+        out_len = audio_element_output(self, in_buffer, r_size);
+        if (out_len > 0) {
+            audio_element_update_byte_pos(self, out_len);
+        }
+    }
+    ESP_LOGD(TAG, "el_process");
+    return out_len;
+}
+
+static esp_err_t el_close(audio_element_handle_t self)
+{
+    ESP_LOGD(TAG, "el_close");
+    return ESP_OK;
+}
+
+static esp_err_t el_destroy(audio_element_handle_t self)
+{
+    ESP_LOGD(TAG, "el_destroy");
+    return ESP_OK;
+}
+

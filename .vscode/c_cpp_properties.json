@@ -2,7 +2,7 @@
     "configurations": [
         {
             "name": "ESP-IDF",
-            "compilerPath": "",
+            "compilerPath": "C:\\Espressif\\tools\\xtensa-esp32-elf\\esp-2021r2-patch5-8.4.0\\xtensa-esp32-elf\\bin\\xtensa-esp32-elf-gcc-8.4.0.exe",
             "includePath": [
                 "${config:idf.espIdfPath}/components/**",
                 "${config:idf.espIdfPathWin}/components/**",
@@ -20,7 +20,9 @@
                     "C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/VC/Linux/include/usr/include/**"
                 ],
                 "limitSymbolsToIncludedHeaders": false
-            }
+            },
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "configurationProvider": "ms-vscode.makefile-tools"
         }
     ],
     "version": 4
