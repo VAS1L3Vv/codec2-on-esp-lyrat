@@ -52,7 +52,6 @@
     .buffer_len = 900,                                                          \
 }
 
-
 #define I2S_STREAM_CUSTOM_WRITE_CFG() {                                         \
      .type = AUDIO_STREAM_WRITER,                                               \
     .i2s_config = {                                                             \
@@ -127,7 +126,7 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "\n\nConfigured and initialised codec chip \n");
 
     pipeline = audio_pipeline_init(&pipeline_cfg);
-    mem_assert(pipeline);
+    mem_assert(pipeline)
     ESP_LOGI(TAG, "Initialised pipeline \n");
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
 
@@ -137,7 +136,7 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "Configured I2S stream write \n");
 
     audio_element_cfg_t el_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
-    el_cfg.open = el_open
+    el_cfg.open = el_open;
     el_cfg.process = el_process;
     el_cfg.close = el_close;
     el_cfg.destroy = el_destroy;
@@ -218,8 +217,10 @@ extern "C" void app_main()
     return ESP_OK;
 }
 
-static int el_process(audio_element_handle_t self, char *in_buffer, int in_len)
+extern "C" static int el_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
+    //audio_element_err_t ret;
+    int ret = 0;
     int r_size = audio_element_input(self, in_buffer, in_len);
     int out_len = r_size;
     if (r_size > 0) {
@@ -229,7 +230,7 @@ static int el_process(audio_element_handle_t self, char *in_buffer, int in_len)
         }
     }
     ESP_LOGD(TAG, "el_process");
-    return out_len;
+    return ret;
 }
 
 static esp_err_t el_close(audio_element_handle_t self)
@@ -243,4 +244,3 @@ static esp_err_t el_destroy(audio_element_handle_t self)
     ESP_LOGD(TAG, "el_destroy");
     return ESP_OK;
 }
-
