@@ -2,10 +2,11 @@
 
 extern "C" void app_main()
 {
-    // handles
+       // handles
     audio_pipeline_handle_t pipeline; 
     audio_element_handle_t i2s_reader;
-    audio_element_handle_t el;
+    audio_element_handle_t codec2_enc;
+    audio_element_handle_t codec2_dec;
     audio_element_handle_t i2s_writer;
     ringbuf_handle_t speech_read_buffer;
     ringbuf_handle_t enc2_frame_bits;
@@ -48,8 +49,10 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "Created ringbuffers \n");
 
     audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
-    audio_element_set_input_ringbuf(el, speech_read_buffer);
-    audio_element_set_output_ringbuf(el, speech_write_buffer);
+    audio_element_set_input_ringbuf(codec2_enc, speech_read_buffer);
+    audio_element_set_output_ringbuf(codec2_enc, enc2_frame_bits);
+    audio_element_set_input_ringbuf(codec2_dec, enc2_frame_bits);
+     audio_element_set_output_ringbuf(codec2_dec, speech_write_buffer);
     audio_element_set_input_ringbuf(i2s_writer, speech_write_buffer);
     ESP_LOGI(TAG, "Assigned ringbuffers \n");
 
@@ -59,13 +62,14 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "Initialised Arduino \n");
 
     audio_pipeline_register(pipeline, i2s_reader, "i2sr");
-    audio_pipeline_register(pipeline, el, "el");
+    audio_pipeline_register(pipeline, codec2_enc, "enc2");
+    audio_pipeline_register(pipeline, codec2_dec, "dec2");
     audio_pipeline_register(pipeline, i2s_writer, "i2sw");
     ESP_LOGI(TAG, "Registered pipeline elements \n");
 
-    const char *link_tag[3] = {"i2sr", "el", "i2sw"};
-    audio_pipeline_link(pipeline, &link_tag[0], 3);
-    ESP_LOGI(TAG, "successfully linked together [codec_chip]--> \n i2s_read--> \n element--> \n i2s_write --> \n [codec chip]");
+    const char *link_tag[4] = {"i2sr", "enc2", "dec2", "i2sw"};
+    audio_pipeline_link(pipeline, &link_tag[0], 4);
+    ESP_LOGI(TAG, "successfully linked together [codec_chip]--> \n i2s_read--> \n codec2--> \n i2s_write --> \n [codec chip]");
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG(); // ненважно
     audio_event_iface_handle_t pipeline_event = audio_event_iface_init(&event_cfg);
@@ -82,7 +86,8 @@ extern "C" void app_main()
 
      while (1)
     {
-
+        audio_event_iface_msg_t msg;
+        esp_err_t ret = audio_event_iface_listen(pipeline_event, &msg, portMAX_DELAY);
     }
 
     ESP_LOGI(TAG, " Stopped audio_pipeline"); // сброс всех процессов
@@ -91,7 +96,8 @@ extern "C" void app_main()
     audio_pipeline_terminate(pipeline);
     audio_pipeline_unregister(pipeline, i2s_reader);
     audio_pipeline_unregister(pipeline, i2s_writer);
-    audio_pipeline_unregister(pipeline, el);
+    audio_pipeline_unregister(pipeline, codec2_enc);
+    audio_pipeline_unregister(pipeline, codec2_dec);
     /* Terminate the pipeline before removing the listener */
     audio_pipeline_remove_listener(pipeline);
     /* Stop all periph before removing the listener */
@@ -102,7 +108,8 @@ extern "C" void app_main()
     /* Release all resources */
     audio_pipeline_deinit(pipeline);
     audio_element_deinit(i2s_reader); 
-    audio_element_deinit(el);
+    audio_element_deinit(codec2_enc);
+    audio_element_deinit(codec2_dec);
     audio_element_deinit(i2s_writer);
     esp_periph_set_destroy(set);
     }

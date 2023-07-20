@@ -28,8 +28,8 @@
     .type = AUDIO_STREAM_READER,                                                \
     .i2s_config = {                                                             \
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
-        .sample_rate = 8000,                                                   \
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_8BIT,                           \
+        .sample_rate = 8000,                                                    \
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_8BIT,                            \
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
         .communication_format = I2S_COMM_FORMAT_STAND_PCM_SHORT,                \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
@@ -42,10 +42,10 @@
     .i2s_port = I2S_NUM_0,                                                      \
     .use_alc = 0,                                                               \
     .volume = 0,                                                                \
-    .out_rb_size = 0,                                  \
-    .task_stack = 3072,                                        \
-    .task_core = 1,                                          \
-    .task_prio = 1,                                          \
+    .out_rb_size = 0,                                                           \
+    .task_stack = 3072,                                                         \
+    .task_core = 1,                                                             \
+    .task_prio = 1,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
@@ -71,11 +71,11 @@
     },                                                                          \
     .i2s_port = I2S_NUM_1,                                                      \
     .use_alc = 0,                                                               \
-    .volume = 50,                                                                \
-    .out_rb_size = 0,                                  \
-    .task_stack = 3072,                                        \
+    .volume = 50,                                                               \
+    .out_rb_size = 0,                                                           \
+    .task_stack = 3072,                                                         \
     .task_core = 1,                                                             \
-    .task_prio = 1,                                          \
+    .task_prio = 1,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
@@ -90,7 +90,7 @@
 
 static char *TAG = "MONITORING";
 struct CODEC2* codec2_state;
-uint8_t speech[SPEECH_BUFFER_SIZE];
+uint16_t speech[SPEECH_BUFFER_SIZE];
 TaskHandle_t TaskHandle = NULL;
 void * context_ptr = NULL;
 
