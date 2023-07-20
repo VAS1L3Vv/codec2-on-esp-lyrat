@@ -40,7 +40,8 @@ extern "C" void app_main()
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "Configured I2S stream write \n");
 
-    el = custom_element_init(&el_cfg);
+    codec2_enc = custom_element_init(&el_cfg);
+    codec2_dec = custom_element_init(&el_cfg);
     ESP_LOGI(TAG, "Configured element \n");
     
     speech_read_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
