@@ -43,7 +43,6 @@
 #define CODEC2_MODE_700B 7
 
 struct CODEC2;
-
 struct CODEC2 *  codec2_create(int mode);
 void codec2_destroy(struct CODEC2 *codec2_state);
 void codec2_encode(struct CODEC2 *codec2_state, unsigned char * bits, short speech_in[]);

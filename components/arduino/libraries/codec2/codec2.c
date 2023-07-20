@@ -262,7 +262,7 @@ void codec2_encode(struct CODEC2 *c2, unsigned char *bits, short speech[])
 	   (c2->mode == CODEC2_MODE_700)  ||
 	   (c2->mode == CODEC2_MODE_700B)
 	   );
-
+    
     if (c2->mode == CODEC2_MODE_3200)
 	codec2_encode_3200(c2, bits, speech);
     if (c2->mode == CODEC2_MODE_2400)

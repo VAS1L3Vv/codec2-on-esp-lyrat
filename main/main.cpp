@@ -17,6 +17,10 @@ extern "C" void app_main()
     i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
     i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
+    audio_element_cfg_t el_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
+    el_cfg.task_prio           = 3;
+    el_cfg.task_core           = 1;
+    el_cfg.task_stack          = 3*1024;
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
     
     esp_log_level_set("*", ESP_LOG_WARN);
@@ -35,16 +39,9 @@ extern "C" void app_main()
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "Configured I2S stream write \n");
 
-    audio_element_cfg_t el_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
-    el_cfg.open = el_open;
-    el_cfg.process = el_process;
-    el_cfg.close = el_close;
-    el_cfg.destroy = el_destroy;
-    el_cfg.tag = "el_tag";
-    el = audio_element_init(&el_cfg);
-
+    el = custom_element_init(&el_cfg);
     ESP_LOGI(TAG, "Configured element \n");
-
+    
     speech_read_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
     enc2_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
     speech_write_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
@@ -85,8 +82,7 @@ extern "C" void app_main()
 
      while (1)
     {
-        audio_event_iface_msg_t msg;
-        esp_err_t ret = audio_event_iface_listen(pipeline_event, &msg, portMAX_DELAY);
+
     }
 
     ESP_LOGI(TAG, " Stopped audio_pipeline"); // сброс всех процессов
