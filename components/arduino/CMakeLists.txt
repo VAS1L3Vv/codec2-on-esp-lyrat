@@ -135,6 +135,33 @@ set(LIBRARY_SRCS
   libraries/WiFi/src/WiFiUdp.cpp
   libraries/WiFiProv/src/WiFiProv.cpp
   libraries/Wire/src/Wire.cpp
+  libraries/codec2/codebookd.c
+  libraries/codec2/codebookdt.c
+  libraries/codec2/codebookge.c
+  libraries/codec2/codebookjnd.c
+  libraries/codec2/codebookjvm.c
+  libraries/codec2/codebooklspmelvq.c
+  libraries/codec2/codebookmel.c
+  libraries/codec2/codebookres.c
+  libraries/codec2/codebookvq.c
+  libraries/codec2/codebookvqanssi.c
+  libraries/codec2/codec2.c
+  libraries/codec2/dump.c
+  libraries/codec2/fifo.c
+  libraries/codec2/interp.c
+  libraries/codec2/kiss_fft.c
+  libraries/codec2/lpc.c
+  libraries/codec2/lsp.c
+  libraries/codec2/nlp.c
+  libraries/codec2/pack.c
+  libraries/codec2/phase.c
+  libraries/codec2/phaseexp.c
+  libraries/codec2/postfilter.c
+  libraries/codec2/quantise.c
+  libraries/codec2/SampleFilter.cpp
+  libraries/codec2/sine.c
+  libraries/codec2/ButterworthFilter.cpp
+  libraries/codec2/codebook.c
   )
 
 set(BLE_SRCS

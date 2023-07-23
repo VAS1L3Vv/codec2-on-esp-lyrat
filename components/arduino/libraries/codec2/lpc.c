@@ -255,9 +255,6 @@ void synthesis_filter(
 
 
 //Begin Deulis Comment
-//
-///*---------------------------------------------------------------------------*\
-//
 //  find_aks()
 //
 //  This function takes a frame of samples, and determines the linear

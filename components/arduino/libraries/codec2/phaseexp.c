@@ -61,14 +61,14 @@ float get_float(FILE * in, const char * name, char * * cursor, char * buffer, in
       s++;
 
     /* Comments start with "#" and continue to the end of the line. */
-    if ( c != '\0' && c != '#' ) {
+    if ( c != '\0' && c != '#' ) 
+    {
       char *	end = 0;
       float	f = 0;
 
       f = strtod(s, &end);
 
-      if ( end != s )
-        *cursor = end;
+    if( end != s )  *cursor = end;
         return f;
     }
 
@@ -745,7 +745,7 @@ static float refine_Wo(struct PEXP     *pexp,
 {
     int i;
     float Wo_est, best_var, Wo, var, pred, error, best_Wo;
-
+    best_Wo = 0.0;
     /* test variance over a range of Wo values */
 
     Wo_est = (model->Wo + pexp->Wo_prev)/2.0;

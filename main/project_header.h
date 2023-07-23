@@ -1,7 +1,6 @@
 #ifndef _PROJECT_HEADER_H_
 #define _PROJECT_HEADER_H_
 
-#include "codec2_user.h"
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -15,7 +14,13 @@
 #include "board.h"
 #include "esp_peripherals.h"
 #include "i2s_stream.h"
-
+#include "audio_element.h"
+#include "audio_idf_version.h"
+#include "esp_err.h"
+#include "Arduino.h"
+#include "codec2.h"
+#include "LoRa.h"
+#include <ButterworthFilter.h>
 
 #define I2S_STREAM_CUSTOM_READ_CFG() {                                          \
     .type = AUDIO_STREAM_READER,                                                \
@@ -36,7 +41,7 @@
     .use_alc = 0,                                                               \
     .volume = 0,                                                                \
     .out_rb_size = 0,                                                           \
-    .task_stack = 3072,                                                         \
+    .task_stack = 3072+512,                                                         \
     .task_core = 1,                                                             \
     .task_prio = 1,                                                             \
     .stack_in_ext = false,                                                      \
@@ -66,7 +71,7 @@
     .use_alc = 0,                                                               \
     .volume = 50,                                                               \
     .out_rb_size = 0,                                                           \
-    .task_stack = 3072,                                                         \
+    .task_stack = 3072+512,                                                         \
     .task_core = 1,                                                             \
     .task_prio = 1,                                                             \
     .stack_in_ext = false,                                                      \
@@ -76,8 +81,32 @@
     .expand_src_bits = I2S_BITS_PER_SAMPLE_8BIT,                                \
     .buffer_len = 900,                                                          \
 }
-
 #define SPEECH_BUFFER_SIZE 160
 #define ENCODE_FRAME_SIZE 8
-static char *TAG = "MONITORING";
+
+typedef struct user_struct
+{
+struct CODEC2* codec2_state;
+uint8_t* frame_bits_in;
+uint8_t* frame_bits_out;
+int16_t* speech_in;
+int16_t* speech_out;
+}my_struct;
+void codec2_data_init(my_struct*);
+
+static esp_err_t codec2_enc_open(audio_element_handle_t self);
+static audio_element_err_t codec2_enc_process(audio_element_handle_t self, char *in_buffer, int in_len);
+static esp_err_t codec2_enc_close(audio_element_handle_t self);
+static esp_err_t codec2_enc_destroy(audio_element_handle_t self);
+audio_element_handle_t encoder2_element_init(audio_element_cfg_t *codec2_enc_cfg);
+
+static esp_err_t codec2_dec_open(audio_element_handle_t self);
+static audio_element_err_t codec2_dec_process(audio_element_handle_t self, char *in_buffer, int in_len);
+static esp_err_t codec2_dec_close(audio_element_handle_t self);
+static esp_err_t codec2_dec_destroy(audio_element_handle_t self);
+audio_element_handle_t decoder2_element_init(audio_element_cfg_t *codec2_dec_cfg);
+
+
+
+
 #endif
