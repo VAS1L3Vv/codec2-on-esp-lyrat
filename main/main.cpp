@@ -12,6 +12,8 @@ extern "C" void app_main()
     ringbuf_handle_t enc2_frame_bits;
     ringbuf_handle_t speech_write_buffer;
     audio_board_handle_t board_handle = audio_board_init();
+    my_struct codec2_data; 
+    codec2_data_init(&codec2_data);
 
     // configs
     audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
@@ -40,12 +42,14 @@ extern "C" void app_main()
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "Configured I2S stream write \n");
 
-    codec2_enc = custom_element_init(&el_cfg);
-    codec2_dec = custom_element_init(&el_cfg);
+    codec2_enc = codec2_element_init(&el_cfg);
+    codec2_dec = codec2_element_init(&el_cfg);
     ESP_LOGI(TAG, "Configured element \n");
+    audio_element_setdata(codec2_enc, (my_struct*) &codec2_data);
+    audio_element_setdata(codec2_dec, (my_struct*) &codec2_data);
     
     speech_read_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
-    enc2_frame_bits = rb_create(ENCODE_FRAME_BYTES,1);
+    enc2_frame_bits = rb_create(ENCODE_FRAME_SIZE,1);
     speech_write_buffer = rb_create(SPEECH_BUFFER_SIZE,1);
     ESP_LOGI(TAG, "Created ringbuffers \n");
 
@@ -108,9 +112,10 @@ extern "C" void app_main()
     audio_event_iface_destroy(pipeline_event);
     /* Release all resources */
     audio_pipeline_deinit(pipeline);
-    audio_element_deinit(i2s_reader); 
+    audio_element_deinit(i2s_reader);
     audio_element_deinit(codec2_enc);
     audio_element_deinit(codec2_dec);
+    codec2_destroy(codec2_data.codec2_state);
     audio_element_deinit(i2s_writer);
     esp_periph_set_destroy(set);
     }

@@ -1,7 +1,7 @@
 #ifndef _PROJECT_HEADER_H_
 #define _PROJECT_HEADER_H_
 
-#include "Arduino.h"
+#include "codec2_user.h"
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -11,18 +11,11 @@
 #include "audio_pipeline.h"
 #include "audio_event_iface.h"
 #include "audio_common.h"
-#include "board.h"
 #include "ringbuf.h"
+#include "board.h"
 #include "esp_peripherals.h"
 #include "i2s_stream.h"
-#include "wav_encoder.h"
-#include "wav_decoder.h"
-#include "custom_element.h"
-#include "audio_idf_version.h"
-#include "BluetoothSerial.h"
-#include "codec2.h"
-#include "LoRa.h"
-#include <ButterworthFilter.h>
+
 
 #define I2S_STREAM_CUSTOM_READ_CFG() {                                          \
     .type = AUDIO_STREAM_READER,                                                \
@@ -85,13 +78,6 @@
 }
 
 #define SPEECH_BUFFER_SIZE 160
-#define ENCODE_FRAME_BITS 64
-#define ENCODE_FRAME_BYTES 8
-
+#define ENCODE_FRAME_SIZE 8
 static char *TAG = "MONITORING";
-struct CODEC2* codec2_state;
-uint16_t speech[SPEECH_BUFFER_SIZE];
-TaskHandle_t TaskHandle = NULL;
-void * context_ptr = NULL;
-
 #endif
