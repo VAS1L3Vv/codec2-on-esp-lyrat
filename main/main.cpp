@@ -451,5 +451,5 @@ static esp_err_t codec2_dec_destroy(audio_element_handle_t self)
 
 
 
-
-// I reallly hope this garbage works.
+// I reallly hope this garbage works. 
+//UPD: It works, but like garbage.
