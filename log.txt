@@ -1,0 +1,6 @@
+General project information logging.
+LATEST NEWS: 
+
+-- Main is a little more organized. 
+-- First ready implementation of codec2 element functions. Will be updating to make it work. 
+-- Created switch-based mode selection and according to the mode speech and frame sizes.

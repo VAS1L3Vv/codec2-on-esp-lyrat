@@ -81,12 +81,13 @@
     .expand_src_bits = I2S_BITS_PER_SAMPLE_8BIT,                                \
     .buffer_len = 900,                                                          \
 }
-#define SPEECH_BUFFER_SIZE 160
-#define ENCODE_FRAME_SIZE 8
 
 typedef struct user_struct
 {
 struct CODEC2* codec2_state;
+int mode;
+int SPEECH_SIZE;
+int FRAME_SIZE;
 uint8_t* frame_bits_in;
 uint8_t* frame_bits_out;
 int16_t* speech_in;
@@ -105,8 +106,5 @@ static audio_element_err_t codec2_dec_process(audio_element_handle_t self, char 
 static esp_err_t codec2_dec_close(audio_element_handle_t self);
 static esp_err_t codec2_dec_destroy(audio_element_handle_t self);
 audio_element_handle_t decoder2_element_init(audio_element_cfg_t *codec2_dec_cfg);
-
-
-
 
 #endif
