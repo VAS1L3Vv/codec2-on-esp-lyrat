@@ -13,9 +13,7 @@ extern "C" void app_main()
     ringbuf_handle_t speech_write_buffer;
     audio_board_handle_t board_handle = audio_board_init();
     my_struct codec2_data; 
-
     codec2_data.mode = CODEC2_MODE_3200;
-    codec2_data_init(&codec2_data);
 
     // configs
     audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
@@ -30,7 +28,7 @@ extern "C" void app_main()
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
     initArduino();
-    Serial.begin(115200);
+    Serial.begin(921600);
     while(!Serial){;}
     ESP_LOGI(TAG, "Initialised Arduino \n");
 
@@ -47,6 +45,9 @@ extern "C" void app_main()
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "Configured I2S stream write \n");
 
+    codec2_data_init(&codec2_data);
+    ESP_LOGI(TAG, "Initialized codec2 user struct \n");
+
     codec2_enc = encoder2_element_init(&cdc2_cfg);
     codec2_dec = decoder2_element_init(&cdc2_cfg);
     ESP_LOGI(TAG, "Configured codec2 elements \n");
@@ -55,9 +56,9 @@ extern "C" void app_main()
     audio_element_setdata(codec2_dec, (my_struct*) &codec2_data);
     ESP_LOGI(TAG, "Passed on user data to encoder and decoder elements \n");
     
-    speech_read_buffer = rb_create(codec2_data.SPEECH_SIZE,1);
-    enc2_frame_bits = rb_create(codec2_data.FRAME_SIZE,1);
-    speech_write_buffer = rb_create(codec2_data.SPEECH_SIZE,1);
+    speech_read_buffer = rb_create(codec2_data.SPEECH_SIZE,2);
+    enc2_frame_bits = rb_create(codec2_data.FRAME_SIZE,2);
+    speech_write_buffer = rb_create(codec2_data.SPEECH_SIZE,2);
     ESP_LOGI(TAG, "Created ringbuffers \n");
 
     audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
@@ -123,69 +124,70 @@ extern "C" void app_main()
 
     * Setup and init functions. To configure or setup some stuff once. */
 
-void codec2_data_init(my_struct* codec2_data) // to be used once
+void codec2_data_init(my_struct* cdc2) // to be used once
 {
     char* codec2_mode_string = (char*)malloc(20);
-    switch (codec2_data->mode)
+    static short mode = cdc2->mode;
+    switch (mode)
     {
-        case CODEC2_MODE_3200:
-            codec2_data->SPEECH_SIZE = 160;
-            codec2_data->FRAME_SIZE = 8;
-            codec2_mode_string = "3200 BPS MODE";
-        case CODEC2_MODE_2400:
-            codec2_data->SPEECH_SIZE = 160;
-            codec2_data->FRAME_SIZE = 6;
-            codec2_mode_string = "2400 BPS MODE";
-        case CODEC2_MODE_1600:
-            codec2_data->SPEECH_SIZE = 320;
-            codec2_data->FRAME_SIZE = 8;
-            codec2_mode_string = "1600 BPS MODE";
-        case CODEC2_MODE_1400:
-            codec2_data->SPEECH_SIZE = 320;
-            codec2_data->FRAME_SIZE = 7;
-            codec2_mode_string = "1400 BPS MODE";
-        case CODEC2_MODE_1300:
-            codec2_data->SPEECH_SIZE = 320;
-            codec2_data->FRAME_SIZE = 7;
-            codec2_mode_string = "1300 BPS MODE";
-        case CODEC2_MODE_1200:
-            codec2_data->SPEECH_SIZE = 320;
-            codec2_data->FRAME_SIZE = 6;
-            codec2_mode_string = "1200 BPS MODE";
-        case CODEC2_MODE_700:
-            codec2_data->SPEECH_SIZE = 320;
-            codec2_data->FRAME_SIZE = 4;
-            codec2_mode_string = "700 BPS MODE";
-        case CODEC2_MODE_700B:
-            codec2_data->SPEECH_SIZE = 320;
-            codec2_data->FRAME_SIZE = 4;
-            codec2_mode_string = "700B BPS MODE";
+        case 0:
+            cdc2->SPEECH_SIZE = 160;
+            cdc2->FRAME_SIZE = 8;
+            codec2_mode_string = "3200 BPS MODE";break;
+        case 1:
+            cdc2->SPEECH_SIZE = 160;
+            cdc2->FRAME_SIZE = 6;
+            codec2_mode_string = "2400 BPS MODE";break;
+        case 2:
+            cdc2->SPEECH_SIZE = 320;
+            cdc2->FRAME_SIZE = 8;
+            codec2_mode_string = "1600 BPS MODE";break;
+        case 3:
+            cdc2->SPEECH_SIZE = 320;
+            cdc2->FRAME_SIZE = 7;
+            codec2_mode_string = "1400 BPS MODE";break;
+        case 4:
+            cdc2->SPEECH_SIZE = 320;
+            cdc2->FRAME_SIZE = 7;
+            codec2_mode_string = "1300 BPS MODE";break;
+        case 5:
+            cdc2->SPEECH_SIZE = 320;
+            cdc2->FRAME_SIZE = 6;
+            codec2_mode_string = "1200 BPS MODE";break;
+        case 6:
+            cdc2->SPEECH_SIZE = 320;
+            cdc2->FRAME_SIZE = 4;
+            codec2_mode_string = "700 BPS MODE";break;
+        case 7:
+            cdc2->SPEECH_SIZE = 320;
+            cdc2->FRAME_SIZE = 4;
+            codec2_mode_string = "700B BPS MODE";break;
     }
-    printf("Detected codec2 mode: %s",codec2_mode_string);
-    printf("input speech samples size: %u bytes",codec2_data->SPEECH_SIZE);
-    printf("output encoded frame size: %u bytes",codec2_data->FRAME_SIZE);
-    codec2_data->codec2_state = codec2_create(codec2_data->mode);
-    codec2_data->speech_in = (int16_t*)calloc(codec2_data->SPEECH_SIZE,sizeof(int16_t));
-    codec2_data->speech_out = (int16_t*)calloc(codec2_data->SPEECH_SIZE,sizeof(int16_t));
-    codec2_data->frame_bits_in = (uint8_t*)calloc(codec2_data->FRAME_SIZE,sizeof(uint8_t));
-    codec2_data->frame_bits_out = (uint8_t*)calloc(codec2_data->FRAME_SIZE,sizeof(uint8_t));
+    printf("DETECTED CODEC2 MODE %s \n\n", codec2_mode_string);
+    printf("SPEECH SAMPLE SIZE %u \n\n bytes",cdc2->SPEECH_SIZE);
+    printf("ENCODE FRAME SIZE %u \n\n bytes",cdc2->FRAME_SIZE);
+    cdc2->codec2_state = codec2_create(mode);
+    cdc2->speech_in = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
+    cdc2->speech_out = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
+    cdc2->frame_bits_in = (uint8_t*)calloc(cdc2->FRAME_SIZE,sizeof(uint8_t));
+    cdc2->frame_bits_out = (uint8_t*)calloc(cdc2->FRAME_SIZE,sizeof(uint8_t));
 }
 
-void codec2_data_deinit(my_struct * codec2_data)
+void codec2_data_deinit(my_struct * cdc2)
 {
-    assert(codec2_data);
-    free(codec2_data->speech_in);
-    free(codec2_data->speech_out);
-    free(codec2_data->frame_bits_out);
-    free(codec2_data->frame_bits_in);
-    codec2_destroy(codec2_data->codec2_state);
+    assert(cdc2);
+    free(cdc2->speech_in);
+    free(cdc2->speech_out);
+    free(cdc2->frame_bits_out);
+    free(cdc2->frame_bits_in);
+    codec2_destroy(cdc2->codec2_state);
 }
 
 audio_element_handle_t encoder2_element_init(audio_element_cfg_t *codec2_enc_cfg)
 {
     codec2_enc_cfg->task_prio = 3;
     codec2_enc_cfg->task_core = 1;
-    codec2_enc_cfg->task_stack = 5*1024;
+    codec2_enc_cfg->task_stack = 50*1024;
     codec2_enc_cfg->open = codec2_enc_open;
     codec2_enc_cfg->process = codec2_enc_process;
     codec2_enc_cfg->close = codec2_enc_close;
@@ -199,7 +201,7 @@ audio_element_handle_t decoder2_element_init(audio_element_cfg_t *codec2_dec_cfg
 {
     codec2_dec_cfg->task_prio = 3;
     codec2_dec_cfg->task_core = 1;
-    codec2_dec_cfg->task_stack = 5*1024;
+    codec2_dec_cfg->task_stack = 50*1024;
     codec2_dec_cfg->open = codec2_dec_open;
     codec2_dec_cfg->process = codec2_dec_process;
     codec2_dec_cfg->close = codec2_dec_close;
@@ -214,42 +216,44 @@ audio_element_handle_t decoder2_element_init(audio_element_cfg_t *codec2_dec_cfg
 static int codec2_enc_open(audio_element_handle_t self)
 {
     static const char * TAG = audio_element_get_tag(self);
-    my_struct * codec2_data = (my_struct*) audio_element_getdata(self);
-    assert(codec2_data);
-    ESP_LOGI(TAG,"input speech samples size: %d bytes",codec2_data->SPEECH_SIZE);
-    ESP_LOGI(TAG,"output encoded frame size: %d bytes",codec2_data->FRAME_SIZE);
+    my_struct * cdc2 = (my_struct*) audio_element_getdata(self);
+    assert(cdc2);
+    ESP_LOGI(TAG,"input speech samples size: %d bytes",cdc2->SPEECH_SIZE);
+    ESP_LOGI(TAG,"output encoded frame size: %d bytes",cdc2->FRAME_SIZE);
     ESP_LOGD(TAG, "codec2_enc_open");
     return ESP_OK;
 }
 
 static audio_element_err_t codec2_enc_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
-    int in_size = audio_element_input(self, in_buffer, in_len);
-    int out_len = in_size;
     static const char * TAG = audio_element_get_tag(self);
-    my_struct * codec2_data = (my_struct*) audio_element_getdata(self);
+    my_struct * cdc2 = (my_struct*) audio_element_getdata(self);
 
-    for(int i = 0; i <= out_len;i+=2) {
-        if (i > out_len) 
+    in_len = cdc2->SPEECH_SIZE;
+    int out_len = cdc2->FRAME_SIZE;
+    int in_size = audio_element_input(self, in_buffer, in_len);
+
+    for(int i = 0; i <= in_size; i+=2) {
+        if (i > in_size) 
         {
             ESP_LOGE(TAG, "INPUT BUFFER OVERFLOW: BUFFER SIZE GREATER THAN speech_in BUFFER SIZE");
-            return (audio_element_err_t)out_len;
+            continue;
         }
-        codec2_data->speech_in[i] = in_buffer[i] << 8;
-        codec2_data->speech_in[i] += in_buffer[i+1];
+        cdc2->speech_in[i] = (int)in_buffer[i] << 8;
+        cdc2->speech_in[i] += (int)in_buffer[i+1];
     }
-    codec2_encode(codec2_data->codec2_state, codec2_data->frame_bits_out, codec2_data->speech_in);
+    codec2_encode(cdc2->codec2_state, cdc2->frame_bits_out, cdc2->speech_in);
 
     strncpy(    in_buffer, 
                 reinterpret_cast <const char*> 
-                (codec2_data->frame_bits_out),
-                codec2_data->FRAME_SIZE
+                (cdc2->frame_bits_out),
+                out_len
             );
 
     if (in_size > 0) {
-    out_len = audio_element_output(self, in_buffer, in_size);
-        if (out_len > 0) {
-        audio_element_update_byte_pos(self, out_len);
+    unsigned short ret = audio_element_output(self, in_buffer, out_len);
+        if (ret > 0) {
+        audio_element_update_byte_pos(self, ret);
         }
     }
     ESP_LOGD(TAG, "codec2_enc_processing");
@@ -279,39 +283,41 @@ static esp_err_t codec2_enc_destroy(audio_element_handle_t self)
 static int codec2_dec_open(audio_element_handle_t self)
 {
     static const char * TAG = audio_element_get_tag(self);
-    my_struct * codec2_data = (my_struct*) audio_element_getdata(self);
-    assert(codec2_data);
-    ESP_LOGI(TAG,"input encoded frame size: %d bytes",codec2_data->FRAME_SIZE);
-    ESP_LOGI(TAG,"output speech samples size: %d bytes",codec2_data->SPEECH_SIZE);
+    my_struct * cdc2 = (my_struct*) audio_element_getdata(self);
+    assert(cdc2);
+    ESP_LOGI(TAG,"input encoded frame size: %d bytes",cdc2->FRAME_SIZE);
+    ESP_LOGI(TAG,"output speech samples size: %d bytes",cdc2->SPEECH_SIZE);
     ESP_LOGD(TAG, "codec2_enc_open");
     return ESP_OK;
 }
 
 static audio_element_err_t codec2_dec_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
-    int in_size = audio_element_input(self, in_buffer, in_len);
-    int out_len = in_size;
     static const char * TAG = audio_element_get_tag(self);
-    my_struct * codec2_data = (my_struct*) audio_element_getdata(self);
+    my_struct * cdc2 = (my_struct*) audio_element_getdata(self);
 
-    for(int i = 0; i <= out_len;i++) {
-        if (i > out_len)
+    in_len = cdc2->FRAME_SIZE;
+    int out_len = cdc2->SPEECH_SIZE;
+    int in_size = audio_element_input(self, in_buffer, in_len);
+
+    for(int i = 0; i <= in_size;i++) {
+        if (i > in_size)
         {
             ESP_LOGE(TAG, "INPUT BUFFER OVERFLOW: BUFFER SIZE GREATER THAN FRAME_SIZE BUFFER SIZE");
-            return (audio_element_err_t)out_len;
+            continue;
         }
-    codec2_data->frame_bits_in[i] = in_buffer[i];
+        cdc2->frame_bits_in[i] = (uint16_t)in_buffer[i];
     }
-    codec2_decode(codec2_data->codec2_state, codec2_data->speech_out, codec2_data->frame_bits_in);
+    codec2_decode(cdc2->codec2_state, cdc2->speech_out, cdc2->frame_bits_in);
 
     for(int i = 0;  i <= out_len; i+=2) {
-        in_buffer[i] = codec2_data->speech_out[i] >> 8; 
-        in_buffer[i+1] = (char)codec2_data->speech_out[i];
+        in_buffer[i] = cdc2->speech_out[i] >> 8; 
+        in_buffer[i+1] = cdc2->speech_out[i];
     }
     if (in_size > 0) {
-    out_len = audio_element_output(self, in_buffer, in_size);
-        if (out_len > 0) {
-        audio_element_update_byte_pos(self, out_len);
+    unsigned short ret = audio_element_output(self, in_buffer, out_len);
+        if (ret > 0) {
+        audio_element_update_byte_pos(self, ret);
         }
     }
     ESP_LOGD(TAG, "codec2_dec_processing");

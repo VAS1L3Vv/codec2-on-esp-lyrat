@@ -11,5 +11,18 @@ LATEST NEWS:
 -- Moved Arduino initialisation block up a few lines in main so it starts sooner. 
 -- Changed a couple of cfg names and LOGI messages iin main, nothing much. 
 -- Added new log upon successful setdata execution for codec2 elements. 
--- added mode strin selection per-case in codec2_data_init to log the selected mode. 
--- 
+-- added mode string selection per-case in codec2_data_init to log the selected mode. 
+
+-- Massively increased different types of stack in menuconfig to avoid overflow,
+   which is quite a common occurence by now. 
+-- Enabled stack overflow guard to help detect overflows in the moment.
+-- Added LOGI for codec2 user struct initialisation. 
+-- Upped the elements' ringbuffer multiplier to 2, to help avoid overflow.
+-- Added breaks to case statements. For fukcs sake Viktor, 
+   I know you forgot C programming but that's a new low.
+-- Changed codec2_data-> pointers to cdc2-> which is now easier to write. 
+-- Tremendously fixed encoder2 and decoder2 process functions. Should work now. I hope.
+-- Significantly increased enc2 dec2 task stack sizes, like 10 times. 
+-- Massively increased task stack sizes overall.
+
+--   !!!!! HURRRAY WE GOT SOUND!!!!! GARBAGE, BUT SOUND!!!! 
