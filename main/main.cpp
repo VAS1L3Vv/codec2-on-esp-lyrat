@@ -125,7 +125,7 @@ extern "C" void app_main()
 
 void codec2_data_init(my_struct* codec2_data) // to be used once
 {
-    char* codec2_mode_string = (char*)calloc(15,sizeof(char));
+    char* codec2_mode_string = (char*)malloc(20);
     switch (codec2_data->mode)
     {
         case CODEC2_MODE_3200:
@@ -164,7 +164,6 @@ void codec2_data_init(my_struct* codec2_data) // to be used once
     printf("Detected codec2 mode: %s",codec2_mode_string);
     printf("input speech samples size: %u bytes",codec2_data->SPEECH_SIZE);
     printf("output encoded frame size: %u bytes",codec2_data->FRAME_SIZE);
-    free(codec2_mode_string);
     codec2_data->codec2_state = codec2_create(codec2_data->mode);
     codec2_data->speech_in = (int16_t*)calloc(codec2_data->SPEECH_SIZE,sizeof(int16_t));
     codec2_data->speech_out = (int16_t*)calloc(codec2_data->SPEECH_SIZE,sizeof(int16_t));
@@ -335,6 +334,32 @@ static esp_err_t codec2_dec_destroy(audio_element_handle_t self)
 
     return ESP_OK;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
