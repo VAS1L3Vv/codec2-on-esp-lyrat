@@ -22,12 +22,17 @@ extern "C" void app_main()
     i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
     i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
     esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
-    audio_element_cfg_t el_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
+    audio_element_cfg_t cdc2_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
     
     static const char *TAG = "MONITORING";
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
+
+    initArduino();
+    Serial.begin(115200);
+    while(!Serial){;}
+    ESP_LOGI(TAG, "Initialised Arduino \n");
 
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START);
     ESP_LOGI(TAG, "\n\nConfigured and initialised codec chip \n");
@@ -42,12 +47,13 @@ extern "C" void app_main()
     i2s_writer = i2s_stream_init(&i2s_write_cfg);
     ESP_LOGI(TAG, "Configured I2S stream write \n");
 
-    codec2_enc = encoder2_element_init(&el_cfg);
-    codec2_dec = decoder2_element_init(&el_cfg);
-    ESP_LOGI(TAG, "Configured element \n");
+    codec2_enc = encoder2_element_init(&cdc2_cfg);
+    codec2_dec = decoder2_element_init(&cdc2_cfg);
+    ESP_LOGI(TAG, "Configured codec2 elements \n");
 
     audio_element_setdata(codec2_enc, (my_struct*) &codec2_data);
     audio_element_setdata(codec2_dec, (my_struct*) &codec2_data);
+    ESP_LOGI(TAG, "Passed on user data to encoder and decoder elements \n");
     
     speech_read_buffer = rb_create(codec2_data.SPEECH_SIZE,1);
     enc2_frame_bits = rb_create(codec2_data.FRAME_SIZE,1);
@@ -61,12 +67,6 @@ extern "C" void app_main()
     audio_element_set_output_ringbuf(codec2_dec, speech_write_buffer);
     audio_element_set_input_ringbuf(i2s_writer, speech_write_buffer);
     ESP_LOGI(TAG, "Assigned ringbuffers \n");
-
-    initArduino();
-    Serial.begin(115200);
-    while(!Serial){;}
-
-    ESP_LOGI(TAG, "Initialised Arduino \n");
 
     audio_pipeline_register(pipeline, i2s_reader, "i2sr");
     audio_pipeline_register(pipeline, codec2_enc, "enc2");
@@ -111,7 +111,7 @@ extern "C" void app_main()
     audio_element_deinit(i2s_reader);
     audio_element_deinit(codec2_enc);
     audio_element_deinit(codec2_dec);
-    codec2_destroy(codec2_data.codec2_state);
+    codec2_data_deinit(&codec2_data);
     audio_element_deinit(i2s_writer);
     esp_periph_set_destroy(set);
     }
@@ -125,45 +125,68 @@ extern "C" void app_main()
 
 void codec2_data_init(my_struct* codec2_data) // to be used once
 {
+    char* codec2_mode_string = (char*)calloc(15,sizeof(char));
     switch (codec2_data->mode)
     {
         case CODEC2_MODE_3200:
             codec2_data->SPEECH_SIZE = 160;
             codec2_data->FRAME_SIZE = 8;
+            codec2_mode_string = "3200 BPS MODE";
         case CODEC2_MODE_2400:
             codec2_data->SPEECH_SIZE = 160;
             codec2_data->FRAME_SIZE = 6;
+            codec2_mode_string = "2400 BPS MODE";
         case CODEC2_MODE_1600:
             codec2_data->SPEECH_SIZE = 320;
             codec2_data->FRAME_SIZE = 8;
+            codec2_mode_string = "1600 BPS MODE";
         case CODEC2_MODE_1400:
             codec2_data->SPEECH_SIZE = 320;
             codec2_data->FRAME_SIZE = 7;
+            codec2_mode_string = "1400 BPS MODE";
         case CODEC2_MODE_1300:
             codec2_data->SPEECH_SIZE = 320;
             codec2_data->FRAME_SIZE = 7;
+            codec2_mode_string = "1300 BPS MODE";
         case CODEC2_MODE_1200:
             codec2_data->SPEECH_SIZE = 320;
             codec2_data->FRAME_SIZE = 6;
+            codec2_mode_string = "1200 BPS MODE";
         case CODEC2_MODE_700:
             codec2_data->SPEECH_SIZE = 320;
             codec2_data->FRAME_SIZE = 4;
+            codec2_mode_string = "700 BPS MODE";
         case CODEC2_MODE_700B:
             codec2_data->SPEECH_SIZE = 320;
             codec2_data->FRAME_SIZE = 4;
+            codec2_mode_string = "700B BPS MODE";
     }
-codec2_data->codec2_state = codec2_create(codec2_data->mode);
-codec2_data->speech_in = (int16_t*)calloc(codec2_data->SPEECH_SIZE,sizeof(int16_t));
-codec2_data->speech_out = (int16_t*)calloc(codec2_data->SPEECH_SIZE,sizeof(int16_t));
-codec2_data->frame_bits_in = (uint8_t*)calloc(codec2_data->FRAME_SIZE,sizeof(uint8_t));
-codec2_data->frame_bits_out = (uint8_t*)calloc(codec2_data->FRAME_SIZE,sizeof(uint8_t));
+    printf("Detected codec2 mode: %s",codec2_mode_string);
+    printf("input speech samples size: %u bytes",codec2_data->SPEECH_SIZE);
+    printf("output encoded frame size: %u bytes",codec2_data->FRAME_SIZE);
+    free(codec2_mode_string);
+    codec2_data->codec2_state = codec2_create(codec2_data->mode);
+    codec2_data->speech_in = (int16_t*)calloc(codec2_data->SPEECH_SIZE,sizeof(int16_t));
+    codec2_data->speech_out = (int16_t*)calloc(codec2_data->SPEECH_SIZE,sizeof(int16_t));
+    codec2_data->frame_bits_in = (uint8_t*)calloc(codec2_data->FRAME_SIZE,sizeof(uint8_t));
+    codec2_data->frame_bits_out = (uint8_t*)calloc(codec2_data->FRAME_SIZE,sizeof(uint8_t));
+}
+
+void codec2_data_deinit(my_struct * codec2_data)
+{
+    assert(codec2_data);
+    free(codec2_data->speech_in);
+    free(codec2_data->speech_out);
+    free(codec2_data->frame_bits_out);
+    free(codec2_data->frame_bits_in);
+    codec2_destroy(codec2_data->codec2_state);
 }
 
 audio_element_handle_t encoder2_element_init(audio_element_cfg_t *codec2_enc_cfg)
 {
     codec2_enc_cfg->task_prio = 3;
-    codec2_enc_cfg->task_core = 0;
-    codec2_enc_cfg->task_stack = 50*1024;
+    codec2_enc_cfg->task_core = 1;
+    codec2_enc_cfg->task_stack = 5*1024;
     codec2_enc_cfg->open = codec2_enc_open;
     codec2_enc_cfg->process = codec2_enc_process;
     codec2_enc_cfg->close = codec2_enc_close;
@@ -176,7 +199,7 @@ audio_element_handle_t encoder2_element_init(audio_element_cfg_t *codec2_enc_cfg
 audio_element_handle_t decoder2_element_init(audio_element_cfg_t *codec2_dec_cfg)
 {
     codec2_dec_cfg->task_prio = 3;
-    codec2_dec_cfg->task_core = 0;
+    codec2_dec_cfg->task_core = 1;
     codec2_dec_cfg->task_stack = 5*1024;
     codec2_dec_cfg->open = codec2_dec_open;
     codec2_dec_cfg->process = codec2_dec_process;

@@ -4,3 +4,12 @@ LATEST NEWS:
 -- Main is a little more organized. 
 -- First ready implementation of codec2 element functions. Will be updating to make it work. 
 -- Created switch-based mode selection and according to the mode speech and frame sizes.
+
+
+-- Added debug log to codec2_data_init function to make sure the correct mode is set.
+-- Added codec2_data_deinit function for deallocation upon pipeline termination. 
+-- Moved Arduino initialisation block up a few lines in main so it starts sooner. 
+-- Changed a couple of cfg names and LOGI messages iin main, nothing much. 
+-- Added new log upon successful setdata execution for codec2 elements. 
+-- added mode strin selection per-case in codec2_data_init to log the selected mode. 
+-- 

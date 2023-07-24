@@ -93,7 +93,9 @@ uint8_t* frame_bits_out;
 int16_t* speech_in;
 int16_t* speech_out;
 }my_struct;
+
 void codec2_data_init(my_struct*);
+void codec2_data_deinit(my_struct*);
 
 static esp_err_t codec2_enc_open(audio_element_handle_t self);
 static audio_element_err_t codec2_enc_process(audio_element_handle_t self, char *in_buffer, int in_len);
