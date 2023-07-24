@@ -74,8 +74,8 @@ extern "C" void app_main()
     audio_pipeline_register(pipeline, i2s_writer, "i2sw");
     ESP_LOGI(TAG, "Registered pipeline elements \n");
 
-    const char *link_tag[3] = {"i2sr", "enc2", "i2sw"};
-    audio_pipeline_link(pipeline, &link_tag[0], 3);
+    const char *link_tag[4] = {"i2sr", "enc2", "dec2", "i2sw"};
+    audio_pipeline_link(pipeline, &link_tag[0], 4);
     ESP_LOGI(TAG, "successfully linked together [codec_chip]--> \n i2s_read--> \n codec2--> \n i2s_write --> \n [codec chip]");
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
@@ -162,8 +162,8 @@ codec2_data->frame_bits_out = (uint8_t*)calloc(codec2_data->FRAME_SIZE,sizeof(ui
 audio_element_handle_t encoder2_element_init(audio_element_cfg_t *codec2_enc_cfg)
 {
     codec2_enc_cfg->task_prio = 3;
-    codec2_enc_cfg->task_core = 1;
-    codec2_enc_cfg->task_stack = 5*1024;
+    codec2_enc_cfg->task_core = 0;
+    codec2_enc_cfg->task_stack = 50*1024;
     codec2_enc_cfg->open = codec2_enc_open;
     codec2_enc_cfg->process = codec2_enc_process;
     codec2_enc_cfg->close = codec2_enc_close;
@@ -176,7 +176,7 @@ audio_element_handle_t encoder2_element_init(audio_element_cfg_t *codec2_enc_cfg
 audio_element_handle_t decoder2_element_init(audio_element_cfg_t *codec2_dec_cfg)
 {
     codec2_dec_cfg->task_prio = 3;
-    codec2_dec_cfg->task_core = 1;
+    codec2_dec_cfg->task_core = 0;
     codec2_dec_cfg->task_stack = 5*1024;
     codec2_dec_cfg->open = codec2_dec_open;
     codec2_dec_cfg->process = codec2_dec_process;
@@ -281,7 +281,7 @@ static audio_element_err_t codec2_dec_process(audio_element_handle_t self, char 
     codec2_data->frame_bits_in[i] = in_buffer[i];
     }
     codec2_decode(codec2_data->codec2_state, codec2_data->speech_out, codec2_data->frame_bits_in);
-    
+
     for(int i = 0;  i <= out_len; i+=2) {
         in_buffer[i] = codec2_data->speech_out[i] >> 8; 
         in_buffer[i+1] = (char)codec2_data->speech_out[i];
