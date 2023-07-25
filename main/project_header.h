@@ -31,8 +31,8 @@
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
         .communication_format = I2S_COMM_FORMAT_STAND_MSB,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
-        .dma_buf_count = 3,                                                     \
-        .dma_buf_len = 300,                                                     \
+        .dma_buf_count = 2,                                                     \
+        .dma_buf_len = 200,                                                     \
         .use_apll = true,                                                       \
         .tx_desc_auto_clear = true,                                             \
         .fixed_mclk = 0                                                         \
@@ -41,13 +41,13 @@
     .use_alc = 0,                                                               \
     .volume = 0,                                                                \
     .out_rb_size = 0,                                                           \
-    .task_stack = 3*1024,                                                       \
+    .task_stack = 4*1024,                                                       \
     .task_core = 1,                                                             \
     .task_prio = 3,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
-    .need_expand = 1,                                                           \
+    .need_expand = 0,                                                           \
     .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
     .buffer_len = 300,                                                          \
 }
@@ -61,23 +61,23 @@
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
         .communication_format = I2S_COMM_FORMAT_STAND_MSB,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
-        .dma_buf_count = 3,                                                     \
-        .dma_buf_len = 300,                                                     \
+        .dma_buf_count = 2,                                                     \
+        .dma_buf_len = 200,                                                     \
         .use_apll = true,                                                       \
         .tx_desc_auto_clear = true,                                             \
         .fixed_mclk = 0                                                         \
     },                                                                          \
     .i2s_port = I2S_NUM_1,                                                      \
     .use_alc = 0,                                                               \
-    .volume = -5,                                                               \
+    .volume = 0,                                                               \
     .out_rb_size = 0,                                                           \
-    .task_stack = 3*1024,                                                       \
+    .task_stack = 4*1024,                                                       \
     .task_core = 1,                                                             \
     .task_prio = 3,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
-    .need_expand = 1,                                                           \
+    .need_expand = 0,                                                           \
     .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
     .buffer_len = 300,                                                          \
 }
@@ -86,7 +86,7 @@
     .sample_rates = 8000,                 \
     .channels = 2,                        \
     .bits = 16,                           \
-    .bps = 0,                        \
+    .bps = 248000,                        \
     .byte_pos = 0,                        \
     .total_bytes = 0,                     \
     .duration = 0,                        \
@@ -98,7 +98,7 @@
     .sample_rates = 8000,                 \
     .channels = 2,                        \
     .bits = 16,                           \
-    .bps = 0,                        \
+    .bps = 248000,                        \
     .byte_pos = 0,                        \
     .total_bytes = 0,                     \
     .duration = 0,                        \

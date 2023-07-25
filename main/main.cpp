@@ -2,7 +2,6 @@
 
 extern "C" void app_main()
 {
-
     // CHECKING FOR EVERYTHING THAT RELATES TO CODEC_CONFIG
     // handles & structs
     audio_pipeline_handle_t pipeline; 
@@ -19,16 +18,14 @@ extern "C" void app_main()
 
     //init configs
     audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
-    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_CFG();
-    i2s_read_cfg.type = AUDIO_STREAM_READER;
-    i2s_read_cfg.i2s_port = I2S_NUM_0;
-    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_CFG();
-    i2s_read_cfg.type = AUDIO_STREAM_WRITER;
-     i2s_read_cfg.i2s_port = I2S_NUM_1;
+    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
+    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
+    printf("read type %i %i \n read port num %i %i \n", i2s_read_cfg.type,AUDIO_STREAM_READER,  i2s_read_cfg.i2s_port, I2S_NUM_0);
+    printf("write type %i %i \n write port num %i %i \n", i2s_write_cfg.type,AUDIO_STREAM_WRITER, i2s_write_cfg.i2s_port, I2S_NUM_1);
     esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
     audio_element_cfg_t cdc2_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
-
+    
     //ELEMENT INFO
     audio_element_info_t cdc2_info = CDC2_INFO();
     audio_element_info_t i2s_info = I2S_INFO();
@@ -36,7 +33,7 @@ extern "C" void app_main()
     static const char *TAG = "STARTED MAIN";
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
-    
+
     initArduino();
     Serial.begin(115200);
     while(!Serial){;}
@@ -72,9 +69,9 @@ extern "C" void app_main()
     audio_element_setdata(codec2_dec, (my_struct*) &codec2_data);
     ESP_LOGI(TAG, "Passed on user data to encoder and decoder elements \n");
     
-    speech_read_buffer = rb_create(480,1);
+    speech_read_buffer = rb_create(64,1);
     enc2_frame_bits = rb_create(16,1);
-    speech_write_buffer = rb_create(480,1);
+    speech_write_buffer = rb_create(64,1);
     ESP_LOGI(TAG, "Created ringbuffers \n");            // CHECKED
 
     audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
@@ -249,24 +246,8 @@ static audio_element_err_t codec2_enc_process(audio_element_handle_t self, char 
     static const char * TAG = audio_element_get_tag(self);
     my_struct * cdc2 = (my_struct*) audio_element_getdata(self);
 
-    in_len = cdc2->SPEECH_SIZE;
-    int out_len = cdc2->FRAME_SIZE;
     int in_size = audio_element_input(self, in_buffer, in_len);
-
-    /*
-    for(int i = 0; i <= in_len; i+=2) {
-        if (i > in_size) 
-        {
-            ESP_LOGE(TAG, "INPUT BUFFER OVERFLOW: BUFFER SIZE GREATER THAN speech_in BUFFER SIZE");
-            continue;
-        }
-        cdc2->speech_in[i] = in_buffer[i] << 8;
-        cdc2->speech_in[i] += in_buffer[i+1];
-    }*/
-    memcpy(cdc2->speech_in, reinterpret_cast <const int16_t*>(in_buffer), out_len);
-    codec2_encode(cdc2->codec2_state, cdc2->frame_bits_out, cdc2->speech_in);
-    strncpy(in_buffer, reinterpret_cast <const char*>(cdc2->frame_bits_out), out_len);
-
+    int out_len = in_size;
     if (in_size > 0) {
     unsigned short ret = audio_element_output(self, in_buffer, out_len);
         if (ret > 0) {
