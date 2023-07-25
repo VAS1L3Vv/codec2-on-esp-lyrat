@@ -19,8 +19,12 @@ extern "C" void app_main()
 
     //init configs
     audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
-    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
-    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
+    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_CFG();
+    i2s_read_cfg.type = AUDIO_STREAM_READER;
+    i2s_read_cfg.i2s_port = I2S_NUM_0;
+    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_CFG();
+    i2s_read_cfg.type = AUDIO_STREAM_WRITER;
+     i2s_read_cfg.i2s_port = I2S_NUM_1;
     esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
     audio_element_cfg_t cdc2_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
