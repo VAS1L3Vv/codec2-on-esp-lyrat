@@ -16,11 +16,15 @@ extern "C" void app_main()
     audio_board_handle_t board_handle = audio_board_init(); //SET UP CUSTOM CODEC CONFIG FOR CODEC2, CHECKED
     my_struct codec2_data; 
     codec2_data.mode = CODEC2_MODE_3200;
-
+    
     //init configs
     audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
-    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
-    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
+    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_CFG();
+    i2s_read_cfg.type = AUDIO_STREAM_READER;
+    i2s_read_cfg.i2s_port = I2S_NUM_0;
+    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_CFG();
+    i2s_read_cfg.type = AUDIO_STREAM_WRITER;
+     i2s_read_cfg.i2s_port = I2S_NUM_1;
     esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
     audio_element_cfg_t cdc2_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
@@ -43,40 +47,40 @@ extern "C" void app_main()
 
     pipeline = audio_pipeline_init(&pipeline_cfg); // CHECKED
     mem_assert(pipeline)
+    ESP_LOGI(TAG, "Initialised pipeline \n"); 
 
     i2s_reader = i2s_stream_init(&i2s_read_cfg); // SET UP IN HEADER, CHECKED
-    ESP_LOGI(TAG, "Initialised pipeline \n"); 
     ESP_LOGI(TAG, "Configured I2S stream read \n");
 
     i2s_writer = i2s_stream_init(&i2s_write_cfg); // SET UP IN HEADER, CHECKED
     ESP_LOGI(TAG, "Configured I2S stream write \n");
 
-    codec2_data_init(&codec2_data);                 // CHECKED 
+    codec2_data_init(&codec2_data);                 // CHECKED
     ESP_LOGI(TAG, "Initialized codec2 user struct \n");
 
-    codec2_enc = encoder2_element_init(&cdc2_cfg);
+    codec2_enc = encoder2_element_init(&cdc2_cfg); 
     codec2_dec = decoder2_element_init(&cdc2_cfg);
     ESP_LOGI(TAG, "Configured codec2 elements \n");
     // MUST SET CUSTOM ELEMENT INFO
 
-    audio_element_setinfo(i2s_reader, &i2s_info);
-    audio_element_setinfo(i2s_writer, &i2s_info);
-    audio_element_setinfo(codec2_enc, &cdc2_info);
-    audio_element_setinfo(codec2_dec, &cdc2_info); // CHECKED
-
-    audio_element_setdata(codec2_enc, (my_struct*) &codec2_data);
-    audio_element_setdata(codec2_dec, (my_struct*) &codec2_data);
+    audio_element_setinfo(i2s_reader, &i2s_info); 
+    audio_element_setinfo(i2s_writer, &i2s_info); 
+    audio_element_setinfo(codec2_enc, &cdc2_info); 
+    audio_element_setinfo(codec2_dec, &cdc2_info); // CHECKED 
+    audio_element_setdata(codec2_enc, (my_struct*) &codec2_data); 
+    audio_element_setdata(codec2_dec, (my_struct*) &codec2_data); 
     ESP_LOGI(TAG, "Passed on user data to encoder and decoder elements \n");
     
-    speech_read_buffer = rb_create(480,1);
-    enc2_frame_bits = rb_create(16,1);
-    speech_write_buffer = rb_create(480,1);
+    speech_read_buffer = rb_create(1600,4);
+    enc2_frame_bits = rb_create(1600,4);
+    speech_write_buffer = rb_create(1600,4);
     ESP_LOGI(TAG, "Created ringbuffers \n");            // CHECKED
 
     audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
     audio_element_set_input_ringbuf(codec2_enc, speech_read_buffer);
     audio_element_set_output_ringbuf(codec2_enc, speech_write_buffer);
     audio_element_set_input_ringbuf(i2s_writer, speech_write_buffer);
+
 
     ESP_LOGI(TAG, "Assigned ringbuffers \n");               // CHECKED
 
@@ -86,9 +90,7 @@ extern "C" void app_main()
     audio_pipeline_register(pipeline, i2s_writer, "i2sw");
     ESP_LOGI(TAG, "Registered pipeline elements \n");      // CHECKED
 
-    const char *link_tag[3] = { "i2sr",
-                                "enc2",  
-                                "i2sw" };
+    const char *link_tag[3] = { "i2sr", "enc2", "i2sw" };
     audio_pipeline_link(pipeline, &link_tag[0], 3);
     ESP_LOGI(TAG, "successfully linked together [codec_chip]--> \n i2s_read--> \n codec2--> \n i2s_write --> \n [codec chip]");
 
