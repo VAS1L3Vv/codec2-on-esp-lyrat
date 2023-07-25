@@ -74,14 +74,10 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "Created ringbuffers \n");            // CHECKED
 
     audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
-
     audio_element_set_input_ringbuf(codec2_enc, speech_read_buffer);
     audio_element_set_output_ringbuf(codec2_enc, speech_write_buffer);
-
-    audio_element_set_input_ringbuf(codec2_dec, enc2_frame_bits);
-    audio_element_set_output_ringbuf(codec2_dec, speech_write_buffer);
-
     audio_element_set_input_ringbuf(i2s_writer, speech_write_buffer);
+
     ESP_LOGI(TAG, "Assigned ringbuffers \n");               // CHECKED
 
     audio_pipeline_register(pipeline, i2s_reader, "i2sr");
@@ -90,10 +86,10 @@ extern "C" void app_main()
     audio_pipeline_register(pipeline, i2s_writer, "i2sw");
     ESP_LOGI(TAG, "Registered pipeline elements \n");      // CHECKED
 
-    const char *link_tag[2] = {"i2sr",
-                             //  "enc2", "dec2", 
-                               "i2sw"};
-    audio_pipeline_link(pipeline, &link_tag[0], 2);
+    const char *link_tag[3] = { "i2sr",
+                                "enc2",  
+                                "i2sw" };
+    audio_pipeline_link(pipeline, &link_tag[0], 3);
     ESP_LOGI(TAG, "successfully linked together [codec_chip]--> \n i2s_read--> \n codec2--> \n i2s_write --> \n [codec chip]");
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_LONG_CFG();
@@ -225,7 +221,8 @@ audio_element_handle_t decoder2_element_init(audio_element_cfg_t *codec2_dec_cfg
     codec2_dec_cfg->tag = "codec2_dec_tag";
     audio_element_handle_t el = audio_element_init(codec2_dec_cfg);
     return el;
-}
+} 
+#include "wav_encoder.h"
 
 // Codec 2 encoder element functions. Not auto generated. Please don't discredit the work i've done. 
 
@@ -245,24 +242,8 @@ static audio_element_err_t codec2_enc_process(audio_element_handle_t self, char 
     static const char * TAG = audio_element_get_tag(self);
     my_struct * cdc2 = (my_struct*) audio_element_getdata(self);
 
-    in_len = cdc2->SPEECH_SIZE;
-    int out_len = cdc2->FRAME_SIZE;
     int in_size = audio_element_input(self, in_buffer, in_len);
-
-    /*
-    for(int i = 0; i <= in_len; i+=2) {
-        if (i > in_size) 
-        {
-            ESP_LOGE(TAG, "INPUT BUFFER OVERFLOW: BUFFER SIZE GREATER THAN speech_in BUFFER SIZE");
-            continue;
-        }
-        cdc2->speech_in[i] = in_buffer[i] << 8;
-        cdc2->speech_in[i] += in_buffer[i+1];
-    }*/
-    memcpy(cdc2->speech_in, reinterpret_cast <const int16_t*>(in_buffer), out_len);
-    codec2_encode(cdc2->codec2_state, cdc2->frame_bits_out, cdc2->speech_in);
-    strncpy(in_buffer, reinterpret_cast <const char*>(cdc2->frame_bits_out), out_len);
-
+    int out_len = in_size;
     if (in_size > 0) {
     unsigned short ret = audio_element_output(self, in_buffer, out_len);
         if (ret > 0) {
