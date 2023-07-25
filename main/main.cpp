@@ -69,9 +69,9 @@ extern "C" void app_main()
     audio_element_setdata(codec2_dec, (my_struct*) &codec2_data);
     ESP_LOGI(TAG, "Passed on user data to encoder and decoder elements \n");
     
-    speech_read_buffer = rb_create(64,1);
+    speech_read_buffer = rb_create(640,1);
     enc2_frame_bits = rb_create(16,1);
-    speech_write_buffer = rb_create(64,1);
+    speech_write_buffer = rb_create(640,1);
     ESP_LOGI(TAG, "Created ringbuffers \n");            // CHECKED
 
     audio_element_set_output_ringbuf(i2s_reader, speech_read_buffer);
@@ -82,6 +82,7 @@ extern "C" void app_main()
     audio_element_set_input_ringbuf(codec2_dec, enc2_frame_bits);
     audio_element_set_output_ringbuf(codec2_dec, speech_write_buffer);
 
+
     audio_element_set_input_ringbuf(i2s_writer, speech_write_buffer);
     ESP_LOGI(TAG, "Assigned ringbuffers \n");               // CHECKED
 
@@ -91,10 +92,11 @@ extern "C" void app_main()
     audio_pipeline_register(pipeline, i2s_writer, "i2sw");
     ESP_LOGI(TAG, "Registered pipeline elements \n");      // CHECKED
 
-    const char *link_tag[2] = {"i2sr",
-                             //  "enc2", "dec2", 
+    const char *link_tag[3] = {"i2sr",
+                               "enc2", 
+                             // "dec2", 
                                "i2sw"};
-    audio_pipeline_link(pipeline, &link_tag[0], 2);
+    audio_pipeline_link(pipeline, &link_tag[0], 3);
     ESP_LOGI(TAG, "successfully linked together [codec_chip]--> \n i2s_read--> \n codec2--> \n i2s_write --> \n [codec chip]");
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_LONG_CFG();
@@ -244,19 +246,29 @@ static int codec2_enc_open(audio_element_handle_t self)
 static audio_element_err_t codec2_enc_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
     static const char * TAG = audio_element_get_tag(self);
+    ESP_LOGD(TAG, "codec2_enc_processing");
+    static unsigned char * frame_bits = (unsigned char*)calloc(8, sizeof(unsigned char));
     my_struct * cdc2 = (my_struct*) audio_element_getdata(self);
-
+    in_len = 160*2;
     int in_size = audio_element_input(self, in_buffer, in_len);
-    int out_len = in_size;
+    ESP_LOGD(TAG, "SAMPLES READ FROM INPUT BUFFER:  %i", in_size/2);
+
+    codec2_encode(cdc2->codec2_state, frame_bits, (short*)in_buffer);
+    ESP_LOGD(TAG,"ENCODED BITS IN FRAME: %i \n", sizeof(frame_bits)*8);
+
+    short * speech_out = (short*)calloc(160, sizeof(short));
+
+    codec2_decode(cdc2->codec2_state,speech_out,frame_bits );
+    ESP_LOGD(TAG, "SAMPLES DECODED:  %i", sizeof(speech_out)/2);
+    static unsigned short ret = 0;
     if (in_size > 0) {
-    unsigned short ret = audio_element_output(self, in_buffer, out_len);
+     ret = audio_element_output(self, (char*)speech_out,in_len);
         if (ret > 0) {
         audio_element_update_byte_pos(self, ret);
         }
     }
-    ESP_LOGD(TAG, "codec2_enc_processing");
-
-    return (audio_element_err_t)out_len;
+    ESP_LOGD(TAG, "SAMPLES WRITTEN TO BUFFER:  %i", ret);
+    return (audio_element_err_t)ret;
 }
 
 static esp_err_t codec2_enc_close(audio_element_handle_t self)
