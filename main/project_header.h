@@ -32,7 +32,7 @@
         .communication_format = I2S_COMM_FORMAT_STAND_MSB,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 2,                                                     \
-        .dma_buf_len = 200,                                                     \
+        .dma_buf_len = 600,                                                     \
         .use_apll = true,                                                       \
         .tx_desc_auto_clear = true,                                             \
         .fixed_mclk = 0                                                         \
@@ -42,14 +42,14 @@
     .volume = 0,                                                                \
     .out_rb_size = 0,                                                           \
     .task_stack = 4*1024,                                                       \
-    .task_core = 0,                                                             \
+    .task_core = 1,                                                             \
     .task_prio = 3,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
     .need_expand = 0,                                                           \
     .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
-    .buffer_len = 300,                                                          \
+    .buffer_len = 600,                                                          \
 }
 
 #define I2S_STREAM_CUSTOM_WRITE_CFG() {                                         \
@@ -72,7 +72,7 @@
     .volume = 0,                                                               \
     .out_rb_size = 0,                                                           \
     .task_stack = 4*1024,                                                       \
-    .task_core = 0,                                                             \
+    .task_core = 1,                                                             \
     .task_prio = 3,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
@@ -81,37 +81,14 @@
     .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
     .buffer_len = 300,                                                          \
 }
-
-#define CDC2_INFO()                     { \
-    .sample_rates = 8000,                 \
-    .channels = 2,                        \
-    .bits = 16,                           \
-    .bps = 248000,                        \
-    .byte_pos = 0,                        \
-    .total_bytes = 0,                     \
-    .duration = 0,                        \
-    .uri = NULL,                          \
-    .codec_fmt = ESP_CODEC_TYPE_UNKNOW    \
-}
-
-#define I2S_INFO()                      { \
-    .sample_rates = 8000,                 \
-    .channels = 2,                        \
-    .bits = 16,                           \
-    .bps = 248000,                        \
-    .byte_pos = 0,                        \
-    .total_bytes = 0,                     \
-    .duration = 0,                        \
-    .uri = NULL,                          \
-    .codec_fmt = ESP_CODEC_TYPE_UNKNOW    \
-}
-
 typedef struct user_struct
 {
 struct CODEC2* codec2_state;
 int mode;
 int SPEECH_SIZE;
 int FRAME_SIZE;
+bool READ_FLAG;
+bool WRITE_FLAG;
 uint8_t* frame_bits_in;
 uint8_t* frame_bits_out;
 int16_t* speech_in;
