@@ -42,7 +42,7 @@
     .volume = 0,                                                                \
     .out_rb_size = 0,                                                           \
     .task_stack = 4*1024,                                                       \
-    .task_core = 1,                                                             \
+    .task_core = 0,                                                             \
     .task_prio = 3,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
@@ -72,7 +72,7 @@
     .volume = 0,                                                               \
     .out_rb_size = 0,                                                           \
     .task_stack = 4*1024,                                                       \
-    .task_core = 1,                                                             \
+    .task_core = 0,                                                             \
     .task_prio = 3,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
