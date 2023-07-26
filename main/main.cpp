@@ -77,7 +77,7 @@ extern "C" void app_main()
 
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_LONG_CFG();
    audio_event_iface_handle_t pipeline_event = audio_event_iface_init(&event_cfg); //CHECKED
-
+    
 //     ESP_LOGI(TAG, "Configured event listeners \n");
 
    audio_pipeline_set_listener(pipeline, pipeline_event);
@@ -88,7 +88,8 @@ extern "C" void app_main()
 //     ESP_LOGI(TAG, "Started audio pipeline \n");
     // audio_element_run(codec2_enc);
     while (1){
-        
+           audio_event_iface_msg_t msg;
+        esp_err_t ret = audio_event_iface_listen(pipeline_event, &msg, portMAX_DELAY);
     }
     audio_pipeline_stop(pipeline);
     // ESP_LOGI(TAG, " Stopped element"); // сброс всех процессов
