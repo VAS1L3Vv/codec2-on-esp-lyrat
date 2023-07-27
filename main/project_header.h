@@ -21,6 +21,7 @@
 #include "codec2.h"
 #include "LoRa.h"
 #include <ButterworthFilter.h>
+#include "driver/timer.h"
 
 #define I2S_STREAM_CUSTOM_READ_CFG() {                                          \
     .type = AUDIO_STREAM_READER,                                                \
@@ -62,7 +63,7 @@
         .communication_format = I2S_COMM_FORMAT_STAND_MSB,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 2,                                                     \
-        .dma_buf_len = 200,                                                     \
+        .dma_buf_len = 600,                                                     \
         .use_apll = true,                                                       \
         .tx_desc_auto_clear = true,                                             \
         .fixed_mclk = 0                                                         \
@@ -79,7 +80,7 @@
     .uninstall_drv = true,                                                      \
     .need_expand = 0,                                                           \
     .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
-    .buffer_len = 300,                                                          \
+    .buffer_len = 600,                                                          \
 }
 typedef struct user_struct
 {
