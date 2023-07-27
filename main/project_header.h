@@ -43,8 +43,8 @@
     .volume = 0,                                                                \
     .out_rb_size = 0,                                                           \
     .task_stack = 4*1024,                                                       \
-    .task_core = 1,                                                             \
-    .task_prio = 3,                                                             \
+    .task_core = 0,                                                             \
+    .task_prio = 1,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
@@ -73,8 +73,8 @@
     .volume = 0,                                                               \
     .out_rb_size = 0,                                                           \
     .task_stack = 4*1024,                                                       \
-    .task_core = 1,                                                             \
-    .task_prio = 3,                                                             \
+    .task_core = 0,                                                             \
+    .task_prio = 1,                                                             \
     .stack_in_ext = false,                                                      \
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
@@ -98,17 +98,5 @@ int16_t* speech_out;
 
 void codec2_data_init(my_struct*);
 void codec2_data_deinit(my_struct*);
-
-static esp_err_t codec2_enc_open(audio_element_handle_t self);
-static audio_element_err_t codec2_enc_process(audio_element_handle_t self, char *in_buffer, int in_len);
-static esp_err_t codec2_enc_close(audio_element_handle_t self);
-static esp_err_t codec2_enc_destroy(audio_element_handle_t self);
-audio_element_handle_t encoder2_element_init(audio_element_cfg_t *codec2_enc_cfg);
-
-static esp_err_t codec2_dec_open(audio_element_handle_t self);
-static audio_element_err_t codec2_dec_process(audio_element_handle_t self, char *in_buffer, int in_len);
-static esp_err_t codec2_dec_close(audio_element_handle_t self);
-static esp_err_t codec2_dec_destroy(audio_element_handle_t self);
-audio_element_handle_t decoder2_element_init(audio_element_cfg_t *codec2_dec_cfg);
 
 #endif
