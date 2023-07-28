@@ -24,7 +24,7 @@ extern "C" void app_main()
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
 
-    ButterworthFilter hp_filter(2000, 8000, ButterworthFilter::ButterworthFilter::Highpass, 1);
+    ButterworthFilter hp_filter(1500, 8000, ButterworthFilter::ButterworthFilter::Highpass, 1);
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
     ESP_LOGI(TAG, "\n\nConfigured and initialised codec chip \n");
 
@@ -35,12 +35,15 @@ extern "C" void app_main()
     codec2_data_init(&cdc2);                 
     int element_number = 160;
     short * speech_in = (short*)calloc(80000,sizeof(short));
-    
+    short * speech_in_pack = (short*)calloc(160,sizeof(short));
+    short * speech_out = (short*)calloc(80000,sizeof(short));
+     short * speech_out_pack = (short*)calloc(160,sizeof(short));
+    unsigned char * frame_bits = (unsigned char *)calloc(8,1);
     while(1) {
-        for(int secs = 3; secs > 0; secs--) {
-        ESP_LOGI(TAG,"RECORDING IN %u",secs);
-        vTaskDelay(1000);
-        }
+        // for(int secs = 3; secs > 0; secs--) {
+        // ESP_LOGI(TAG,"RECORDING IN %u",secs);
+        // vTaskDelay(1000);
+        // }
         ESP_LOGI(TAG,"RECORDING");
         static size_t bytes_read = 0;
         i2s_read(I2S_NUM_0, (short*)speech_in, 160000, &bytes_read, portMAX_DELAY);
@@ -49,11 +52,13 @@ extern "C" void app_main()
         for (int i = 0; i < 80000; i++)
 		speech_in[i] = (short)hp_filter.Update((float)speech_in[i]);    
         ESP_LOGI(TAG,"PASSED. WRITING");
+
+        for(int i = 0; )
         static size_t bytes_written = 0;
         i2s_write(I2S_NUM_1, (short*)speech_in, 160000, &bytes_written, portMAX_DELAY);
         ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES", bytes_written, bytes_written/sizeof(short));
         ESP_LOGI(TAG,"FINISHED.");
-        vTaskDelay(500);
+        // vTaskDelay(500);
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
