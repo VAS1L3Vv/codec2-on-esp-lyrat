@@ -10,7 +10,7 @@ extern "C" void app_main()
     static const char *TAG = "STARTED MAIN";
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
-
+    
     my_struct cdc2; 
     cdc2.mode = CODEC2_MODE_3200;
     audio_element_handle_t i2s_reader;
@@ -24,7 +24,7 @@ extern "C" void app_main()
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
 
-    ButterworthFilter hp_filter(1500, 8000, ButterworthFilter::ButterworthFilter::Highpass, 1);
+    ButterworthFilter hp_filter(2400, 8000, ButterworthFilter::ButterworthFilter::Highpass, 1);
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
     ESP_LOGI(TAG, "\n\nConfigured and initialised codec chip \n");
 
@@ -40,10 +40,6 @@ extern "C" void app_main()
      short * speech_out_pack = (short*)calloc(160,sizeof(short));
     unsigned char * frame_bits = (unsigned char *)calloc(8,1);
     while(1) {
-        // for(int secs = 3; secs > 0; secs--) {
-        // ESP_LOGI(TAG,"RECORDING IN %u",secs);
-        // vTaskDelay(1000);
-        // }
         ESP_LOGI(TAG,"RECORDING");
         static size_t bytes_read = 0;
         i2s_read(I2S_NUM_0, (short*)speech_in, 160000, &bytes_read, portMAX_DELAY);
@@ -51,14 +47,20 @@ extern "C" void app_main()
         ESP_LOGI(TAG, "PASSING SPEECH THROUGH 240 Hz HIGHPASS FILTER");
         for (int i = 0; i < 80000; i++)
 		speech_in[i] = (short)hp_filter.Update((float)speech_in[i]);    
-        ESP_LOGI(TAG,"PASSED. WRITING");
 
-        for(int i = 0; )
+        for(int i = 0; i < 80000; i+= cdc2.SPEECH_SIZE)
+        {
+            memcpy(speech_in_pack, speech_in+i, cdc2.SPEECH_SIZE*2);
+            codec2_encode(cdc2.codec2_state, frame_bits, speech_in_pack);
+            codec2_decode(cdc2.codec2_state, speech_out_pack, frame_bits);
+            memcpy(speech_out+i, speech_out_pack,cdc2.SPEECH_SIZE*2);
+            ESP_LOGI(TAG,"CURRENT ARRAY POSITION: %u", i);
+        }
+        ESP_LOGI(TAG,"PASSED. WRITING");
         static size_t bytes_written = 0;
-        i2s_write(I2S_NUM_1, (short*)speech_in, 160000, &bytes_written, portMAX_DELAY);
+        i2s_write(I2S_NUM_1, (short*)speech_out, 160000, &bytes_written, portMAX_DELAY);
         ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES", bytes_written, bytes_written/sizeof(short));
         ESP_LOGI(TAG,"FINISHED.");
-        // vTaskDelay(500);
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
