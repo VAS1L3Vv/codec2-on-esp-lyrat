@@ -22,6 +22,7 @@
 #include "LoRa.h"
 #include <ButterworthFilter.h>
 #include "driver/timer.h"
+#include "FastAudioFIFO.h"
 
 #define I2S_STREAM_CUSTOM_READ_CFG() {                                          \
     .type = AUDIO_STREAM_READER,                                                \
@@ -94,10 +95,16 @@
     .uri = NULL,                          \
     .codec_fmt = ESP_CODEC_TYPE_UNKNOW    \
 }
+
+#define WRITING false
+#define WRITING_DONE true
+
+
 typedef struct user_struct
 {
 struct CODEC2* codec2_state;
 int mode;
+int SPEECH_BYTES;
 int SPEECH_SIZE;
 int FRAME_SIZE;
 bool READ_FLAG;

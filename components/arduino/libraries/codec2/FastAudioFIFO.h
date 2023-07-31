@@ -21,8 +21,8 @@ public:
 
 	bool put(int16_t item)
 	{
-		//if (full())
-		//	return false;
+		// if (full())
+		// 	return false;
 
 		//std::lock_guard<std::mutex> lock(mutex_);
 		buf_[(head_++) & FastAudioFIFO_MASK] = item;
@@ -30,7 +30,7 @@ public:
 		return true;
 	}
 
-	bool get(int16_t* item)
+	bool get(short* item)
 	{
 		//std::lock_guard<std::mutex> lock(mutex_);
 

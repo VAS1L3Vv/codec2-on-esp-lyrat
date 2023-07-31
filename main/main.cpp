@@ -1,17 +1,23 @@
 #include "project_header.h"
 
-// initArduino();
-    // Serial.begin(115200);
-    // while(!Serial){;}
-    // ESP_LOGI(TAG, "Initialised Arduino \n");
+
+    my_struct cdc2; 
+    FastAudioFIFO speech_buf;
+
+    void read_dma(void * arg);
 
 extern "C" void app_main()
 {
     static const char *TAG = "STARTED MAIN";
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
-    
-    my_struct cdc2; 
+
+    initArduino();
+    Serial.begin(115200);
+    while(!Serial){;}
+    ESP_LOGI(TAG, "Initialised Arduino \n");
+    TaskHandle_t READ_Handle = NULL;
+
     cdc2.mode = CODEC2_MODE_3200;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
@@ -34,39 +40,33 @@ extern "C" void app_main()
     i2s_writer = i2s_stream_init(&i2s_write_cfg); 
     // audio_element_setinfo(i2s_reader,&i2s_info);
     codec2_data_init(&cdc2);                 
-    int element_number = 160;
-    short * speech_in = (short*)calloc(40000,sizeof(short));
-    short * speech_in_pack = (short*)calloc(160,sizeof(short));
-    short * speech_out = (short*)calloc(40000,sizeof(short));
-     short * speech_out_pack = (short*)calloc(160,sizeof(short));
-    unsigned char * frame_bits = (unsigned char *)calloc(8,1);
-
-    while(1) 
-    {
-        ESP_LOGI(TAG,"RECORDING");
-        static size_t bytes_read = 0;
-        i2s_read(I2S_NUM_0, (short*)speech_in, 80000, &bytes_read, portMAX_DELAY);
-        ESP_LOGI(TAG,"HAVE RECORDED %u BYTES, %u SAMPLES", bytes_read, bytes_read/sizeof(short)); 
-        // i2s_mono_fix(16,(uint8_t*)speech_in,80000);
-
-        for(int i = 0; i < 80000; i+= cdc2.SPEECH_SIZE) 
-        {
-            memcpy((short*)speech_in_pack, (short*)speech_in+i, cdc2.SPEECH_SIZE*2);
-            codec2_encode(cdc2.codec2_state, frame_bits, speech_in_pack);
-            codec2_decode(cdc2.codec2_state, speech_out_pack, frame_bits);
-            memcpy((short*)speech_out+i, (short*)speech_out_pack,cdc2.SPEECH_SIZE*2);
-        }
+    xTaskCreatePinnedToCore(read_dma,"Read_DMA", 6*1024, NULL, 3, &READ_Handle, 1); 
         // for (int i = 0; i < 80000; i++)
         // speech_in[i] = (short)hp_filter.Update((float)speech_in[i]); 
         // for (int i = 0; i < 80000; i++)
-        // speech_in[i] = (short)lp_filter.Update((float)speech_in[i]);     
-
-
-        ESP_LOGI(TAG,"PASSED. WRITING");
+        // speech_in[i] = (short)lp_filter.Update((float)speech_in[i]);
+    while(1)
+    {
+        static short pos = 0;
+        speech_buf.get(cdc2.speech_in+pos);
+        printf("CURRENT BUFFER LENGTH: %u\n", pos);
+        pos++;
+        if(pos==cdc2.SPEECH_SIZE)
+        {
+            pos = 0;
+        printf("HAVE READ %u SAMPLES. DONE \n",cdc2.SPEECH_SIZE);
+        codec2_encode(cdc2.codec2_state, cdc2.frame_bits_in, cdc2.speech_in);
+        printf("ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
+        codec2_decode(cdc2.codec2_state, cdc2.speech_out, cdc2.frame_bits_in);
+        printf("DECODED %u BYTE FRAME.\n",cdc2.FRAME_SIZE);
         static size_t bytes_written = 0;
-        i2s_write(I2S_NUM_1, (short*)speech_out, 80000, &bytes_written, portMAX_DELAY);
-        ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES", bytes_written, bytes_written/sizeof(short));
-        ESP_LOGI(TAG,"FINISHED.");
+        i2s_write(I2S_NUM_1, (short*)cdc2.speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
+        ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
+        ESP_LOGI(TAG,"FINISHED.\n");
+        
+        }
+        // if(cdc2.WRITE_FLAG == WRITING_DONE) {
+        // }
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
@@ -76,51 +76,50 @@ extern "C" void app_main()
 
 void codec2_data_init(my_struct* cdc2) // to be used once
 {
-    char* codec2_mode_string = (char*)malloc(20);
     static short mode = cdc2->mode;
     switch (mode)
     {
         case 0:
             cdc2->SPEECH_SIZE = 160;
             cdc2->FRAME_SIZE = 8;
-            codec2_mode_string = "3200 BPS MODE";break;
+            printf("3200 BPS MODE\n");break;
         case 1:
             cdc2->SPEECH_SIZE = 160;
             cdc2->FRAME_SIZE = 6;
-            codec2_mode_string = "2400 BPS MODE";break;
+            printf("2400 BPS MODE\n");break;
         case 2:
             cdc2->SPEECH_SIZE = 320;
             cdc2->FRAME_SIZE = 8;
-            codec2_mode_string = "1600 BPS MODE";break;
+            printf("1600 BPS MODE\n");break;
         case 3:
             cdc2->SPEECH_SIZE = 320;
             cdc2->FRAME_SIZE = 7;
-            codec2_mode_string = "1400 BPS MODE";break;
+            printf("1400 BPS MODE\n");break;
         case 4:
             cdc2->SPEECH_SIZE = 320;
             cdc2->FRAME_SIZE = 7;
-            codec2_mode_string = "1300 BPS MODE";break;
+            printf("1300 BPS MODE\n");break;
         case 5:
             cdc2->SPEECH_SIZE = 320;
             cdc2->FRAME_SIZE = 6;
-            codec2_mode_string = "1200 BPS MODE";break;
+            printf("1200 BPS MODE\n");break;
         case 6:
             cdc2->SPEECH_SIZE = 320;
             cdc2->FRAME_SIZE = 4;
-            codec2_mode_string = "700 BPS MODE";break;
+            printf("700 BPS MODE\n");break;
         case 7:
             cdc2->SPEECH_SIZE = 320;
             cdc2->FRAME_SIZE = 4;
-            codec2_mode_string = "700B BPS MODE";break;
+            printf("700B BPS MODE\n");break;
     }
-    printf("DETECTED CODEC2 MODE %s \n\n", codec2_mode_string);
-    printf("SPEECH SAMPLE SIZE %u \n\n bytes",cdc2->SPEECH_SIZE);
-    printf("ENCODE FRAME SIZE %u \n\n bytes",cdc2->FRAME_SIZE);
+
+    printf("SPEECH SAMPLE LENGTH %u \n\n",cdc2->SPEECH_SIZE);
+    printf("ENCODE FRAME SIZE %u \n\n",cdc2->FRAME_SIZE);
+    cdc2->SPEECH_BYTES = cdc2->SPEECH_SIZE*sizeof(short);
     cdc2->codec2_state = codec2_create(mode);
     codec2_set_lpc_post_filter(cdc2->codec2_state, 1, 0, 0.5, 0.5);
     cdc2->READ_FLAG = 0;
     cdc2->WRITE_FLAG = 0;
-    cdc2->speech_in = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
     cdc2->speech_out = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
     cdc2->frame_bits_in = (uint8_t*)calloc(cdc2->FRAME_SIZE,sizeof(uint8_t));
     cdc2->frame_bits_out = (uint8_t*)calloc(cdc2->FRAME_SIZE,sizeof(uint8_t));
@@ -162,4 +161,24 @@ static esp_err_t i2s_mono_fix(int bits, uint8_t *sbuff, uint32_t len)
         return ESP_FAIL;
     }
     return ESP_OK;
+}
+
+void read_dma(void * arg)
+{
+    while(1)
+    {
+        // static const char * TAG = "READING I2S";
+        // ESP_LOGI(TAG,"RECORDING");
+        static size_t bytes_read = 0;
+        static short speech_in = 0;
+        i2s_read(I2S_NUM_0, &speech_in, 2, &bytes_read, portMAX_DELAY);
+        speech_buf.put(speech_in);
+        // if(speech_buf.full()) {
+        //     printf("ERROR: BUFFER EXCEEDED 2048, UNACCEPTABLE OVERFLOW DETECTED. QUITTING."); 
+        //     break;
+        //     }
+        // cdc2.READ_FLAG = READING_DONE;
+        
+        // i2s_mono_fix(16,(uint8_t*)speech_in,80000);
+    }
 }
