@@ -23,14 +23,16 @@ extern "C" void app_main()
     audio_element_cfg_t cdc2_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
+    audio_element_info_t i2s_info = I2S_INFO();
 
     ButterworthFilter hp_filter(200, 8000, ButterworthFilter::ButterworthFilter::Highpass, 3);
-    ButterworthFilter lp_filter(4000, 8000, ButterworthFilter::ButterworthFilter::Lowpass, 3);
+    ButterworthFilter lp_filter(3000, 8000, ButterworthFilter::ButterworthFilter::Lowpass, 3);
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
     ESP_LOGI(TAG, "\n\nConfigured and initialised codec chip \n");
 
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
     i2s_writer = i2s_stream_init(&i2s_write_cfg); 
+    // audio_element_setinfo(i2s_reader,&i2s_info);
     i2s_alc_volume_set(i2s_reader, 50);
     i2s_alc_volume_set(i2s_writer, 50);
     codec2_data_init(&cdc2);                 
@@ -46,12 +48,12 @@ extern "C" void app_main()
         static size_t bytes_read = 0;
         i2s_read(I2S_NUM_0, (short*)speech_in, 160000, &bytes_read, portMAX_DELAY);
         ESP_LOGI(TAG,"HAVE RECORDED %u BYTES, %u SAMPLES", bytes_read, bytes_read/sizeof(short));
-        ESP_LOGI(TAG, "PASSING SPEECH THROUGH 200 Hz HIGHPASS FILTER");
-        for (int i = 0; i < 80000; i++)
-		speech_in[i] = (short)hp_filter.Update((float)speech_in[i]);    
-        for (int i = 0; i < 80000; i++)
-		speech_in[i] = (short)lp_filter.Update((float)speech_in[i]);   
-        // for(int i = 0; i < 80000; i+= cdc2.SPEECH_SIZE)
+            // for (int i = 0; i < 80000; i++)
+            // speech_in[i] = (short)hp_filter.Update((float)speech_in[i]);    
+            // for (int i = 0; i < 80000; i++)
+            // speech_in[i] = (short)lp_filter.Update((float)speech_in[i]);   
+
+        // for(int i = 0; i < 80000; i+= cdc2.SPEECH_SIZE) 
         // {
         //     memcpy((short*)speech_in_pack, (short*)speech_in+i, cdc2.SPEECH_SIZE*2);
         //     codec2_encode(cdc2.codec2_state, frame_bits, speech_in_pack);

@@ -29,7 +29,7 @@
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
         .sample_rate = 8000,                                                    \
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                           \
-        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
+        .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,                           \
         .communication_format = I2S_COMM_FORMAT_STAND_MSB,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 2,                                                     \
@@ -59,7 +59,7 @@
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
         .sample_rate = 8000,                                                    \
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                           \
-        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,                           \
+        .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,                           \
         .communication_format = I2S_COMM_FORMAT_STAND_MSB,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 2,                                                     \
@@ -81,6 +81,18 @@
     .need_expand = 0,                                                           \
     .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
     .buffer_len = 600,                                                          \
+}
+
+#define I2S_INFO()    { \
+    .sample_rates = 8000,                \
+    .channels = 2,                        \
+    .bits = 16,                           \
+    .bps = 0,                             \
+    .byte_pos = 0,                        \
+    .total_bytes = 0,                     \
+    .duration = 0,                        \
+    .uri = NULL,                          \
+    .codec_fmt = ESP_CODEC_TYPE_UNKNOW    \
 }
 typedef struct user_struct
 {
