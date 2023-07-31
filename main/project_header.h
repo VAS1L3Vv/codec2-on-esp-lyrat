@@ -23,6 +23,7 @@
 #include <ButterworthFilter.h>
 #include "driver/timer.h"
 #include "FastAudioFIFO.h"
+#include "rom/ets_sys.h"
 
 #define I2S_STREAM_CUSTOM_READ_CFG() {                                          \
     .type = AUDIO_STREAM_READER,                                                \
@@ -84,11 +85,11 @@
     .buffer_len = 600,                                                          \
 }
 
-#define I2S_INFO()    { \
-    .sample_rates = 8000,                \
+#define I2S_INFO()    {                   \
+    .sample_rates = 8000,                 \
     .channels = 1,                        \
     .bits = 16,                           \
-    .bps = 126000,                             \
+    .bps = 126000,                        \
     .byte_pos = 0,                        \
     .total_bytes = 0,                     \
     .duration = 0,                        \
@@ -98,7 +99,7 @@
 
 #define READING false
 #define READING_DONE true
-#define WRITE_LATENCY 10
+#define WRITE_LATENCY 100
 
 typedef struct user_struct
 {

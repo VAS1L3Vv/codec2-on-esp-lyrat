@@ -45,7 +45,6 @@ extern "C" void app_main()
         // speech_in[i] = (short)hp_filter.Update((float)speech_in[i]); 
         // for (int i = 0; i < 80000; i++)
         // speech_in[i] = (short)lp_filter.Update((float)speech_in[i]);
-    // delay(WRITE_LATENCY);
     while(1)
     {
         static unsigned int i = 0;
@@ -53,14 +52,17 @@ extern "C" void app_main()
         if(cdc2.READ_FLAG == READING_DONE)
         {
         printf("HAVE READ %u SAMPLES. \n",cdc2.SPEECH_SIZE);
+         cdc2.WRITE_FLAG = WRITING;
         codec2_encode(cdc2.codec2_state, cdc2.frame_bits_in, cdc2.speech_in);
+        cdc2.WRITE_FLAG = WRITING_DONE;
         printf("ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
         codec2_decode(cdc2.codec2_state, cdc2.speech_out, cdc2.frame_bits_in);
         printf("DECODED %u BYTE FRAME.\n",cdc2.FRAME_SIZE);
         static size_t bytes_written = 0;
         i2s_write(I2S_NUM_1, (short*)cdc2.speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
-        ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
-        ESP_LOGI(TAG,"FINISHED CYCLE №%u\n",i);
+        printf(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
+        printf(TAG,"FINISHED CYCLE №%u\n",i);
+        i++;
         }
 
     }
@@ -114,8 +116,9 @@ void codec2_data_init(my_struct* cdc2) // to be used once
     cdc2->SPEECH_BYTES = cdc2->SPEECH_SIZE*sizeof(short);
     cdc2->codec2_state = codec2_create(mode);
     codec2_set_lpc_post_filter(cdc2->codec2_state, 1, 0, 0.5, 0.5);
-    cdc2->READ_FLAG = 0;
-    cdc2->WRITE_FLAG = 0;
+    cdc2->READ_FLAG = READING;
+    cdc2->WRITE_FLAG = WRITING_DONE;
+    cdc2->speech_in = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
     cdc2->speech_out = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
     cdc2->frame_bits_in = (uint8_t*)calloc(cdc2->FRAME_SIZE,sizeof(uint8_t));
     cdc2->frame_bits_out = (uint8_t*)calloc(cdc2->FRAME_SIZE,sizeof(uint8_t));
@@ -161,13 +164,18 @@ static esp_err_t i2s_mono_fix(int bits, uint8_t *sbuff, uint32_t len)
 
 void read_dma(void * arg)
 {
+    static const char * TAG = "READ";
     while(1)
     {
+        if(cdc2.WRITE_FLAG == WRITING_DONE)
+        {
+        printf("TASK RUNNIG \n");
         cdc2.READ_FLAG = READING;
         static size_t bytes_read = 0;
         i2s_read(I2S_NUM_0, (short*)cdc2.speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
         cdc2.READ_FLAG = READING_DONE;
-        delay(WRITE_LATENCY);
-        // i2s_mono_fix(16,(uint8_t*)speech_in,80000);
+        printf("READING %u SAMPLES DONE \n",cdc2.SPEECH_BYTES);
+        // vTaskDelay(WRITE_LATENCY/portTICK_RATE_MS);
+        }
     }
 }
