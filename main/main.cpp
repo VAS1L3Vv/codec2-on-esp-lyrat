@@ -12,11 +12,11 @@ extern "C" void app_main()
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
-    initArduino();
-    Serial.begin(115200);
-    while(!Serial){;}
-    ESP_LOGI(TAG, "Initialised Arduino \n");
-    TaskHandle_t READ_Handle = NULL;
+    // initArduino();
+    // Serial.begin(115200);
+    // while(!Serial){;}
+    // ESP_LOGI(TAG, "Initialised Arduino \n");
+    // TaskHandle_t READ_Handle = NULL;
 
     cdc2.mode = CODEC2_MODE_3200;
     audio_element_handle_t i2s_reader;
@@ -45,16 +45,14 @@ extern "C" void app_main()
         // speech_in[i] = (short)hp_filter.Update((float)speech_in[i]); 
         // for (int i = 0; i < 80000; i++)
         // speech_in[i] = (short)lp_filter.Update((float)speech_in[i]);
+    // delay(WRITE_LATENCY);
     while(1)
     {
-        static short pos = 0;
-        speech_buf.get(cdc2.speech_in+pos);
-        printf("CURRENT BUFFER LENGTH: %u\n", pos);
-        pos++;
-        if(pos==cdc2.SPEECH_SIZE)
+        static unsigned int i = 0;
+        ESP_LOGI(TAG, "WAITING FOR SPEECH BUFFER");
+        if(cdc2.READ_FLAG == READING_DONE)
         {
-            pos = 0;
-        printf("HAVE READ %u SAMPLES. DONE \n",cdc2.SPEECH_SIZE);
+        printf("HAVE READ %u SAMPLES. \n",cdc2.SPEECH_SIZE);
         codec2_encode(cdc2.codec2_state, cdc2.frame_bits_in, cdc2.speech_in);
         printf("ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
         codec2_decode(cdc2.codec2_state, cdc2.speech_out, cdc2.frame_bits_in);
@@ -62,11 +60,9 @@ extern "C" void app_main()
         static size_t bytes_written = 0;
         i2s_write(I2S_NUM_1, (short*)cdc2.speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
         ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
-        ESP_LOGI(TAG,"FINISHED.\n");
-        
+        ESP_LOGI(TAG,"FINISHED CYCLE №%u\n",i);
         }
-        // if(cdc2.WRITE_FLAG == WRITING_DONE) {
-        // }
+
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
@@ -167,18 +163,11 @@ void read_dma(void * arg)
 {
     while(1)
     {
-        // static const char * TAG = "READING I2S";
-        // ESP_LOGI(TAG,"RECORDING");
+        cdc2.READ_FLAG = READING;
         static size_t bytes_read = 0;
-        static short speech_in = 0;
-        i2s_read(I2S_NUM_0, &speech_in, 2, &bytes_read, portMAX_DELAY);
-        speech_buf.put(speech_in);
-        // if(speech_buf.full()) {
-        //     printf("ERROR: BUFFER EXCEEDED 2048, UNACCEPTABLE OVERFLOW DETECTED. QUITTING."); 
-        //     break;
-        //     }
-        // cdc2.READ_FLAG = READING_DONE;
-        
+        i2s_read(I2S_NUM_0, (short*)cdc2.speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
+        cdc2.READ_FLAG = READING_DONE;
+        delay(WRITE_LATENCY);
         // i2s_mono_fix(16,(uint8_t*)speech_in,80000);
     }
 }

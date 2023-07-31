@@ -96,9 +96,9 @@
     .codec_fmt = ESP_CODEC_TYPE_UNKNOW    \
 }
 
-#define WRITING false
-#define WRITING_DONE true
-
+#define READING false
+#define READING_DONE true
+#define WRITE_LATENCY 10
 
 typedef struct user_struct
 {
