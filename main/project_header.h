@@ -85,9 +85,9 @@
 
 #define I2S_INFO()    { \
     .sample_rates = 8000,                \
-    .channels = 2,                        \
+    .channels = 1,                        \
     .bits = 16,                           \
-    .bps = 0,                             \
+    .bps = 126000,                             \
     .byte_pos = 0,                        \
     .total_bytes = 0,                     \
     .duration = 0,                        \
@@ -110,5 +110,6 @@ int16_t* speech_out;
 
 void codec2_data_init(my_struct*);
 void codec2_data_deinit(my_struct*);
+static esp_err_t i2s_mono_fix(int bits, uint8_t *sbuff, uint32_t len);
 
 #endif
