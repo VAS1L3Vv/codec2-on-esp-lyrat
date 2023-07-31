@@ -99,7 +99,9 @@
 
 #define READING false
 #define READING_DONE true
-#define WRITE_LATENCY 100
+#define WRITING false
+#define WRITING_DONE true
+#define WRITE_LATENCY 1000
 
 typedef struct user_struct
 {
