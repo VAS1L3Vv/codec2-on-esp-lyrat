@@ -12,7 +12,7 @@ extern "C" void app_main()
     esp_log_level_set(TAG, ESP_LOG_INFO);
     
     my_struct cdc2; 
-    cdc2.mode = CODEC2_MODE_1600;
+    cdc2.mode = CODEC2_MODE_3200;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
@@ -26,7 +26,7 @@ extern "C" void app_main()
     audio_element_info_t i2s_info = I2S_INFO();
 
     ButterworthFilter hp_filter(600, 8000, ButterworthFilter::ButterworthFilter::Highpass, 1);
-    ButterworthFilter lp_filter(3000, 8000, ButterworthFilter::ButterworthFilter::Lowpass, 1);
+    ButterworthFilter lp_filter(3500, 8000, ButterworthFilter::ButterworthFilter::Lowpass, 1);
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
     ESP_LOGI(TAG, "\n\nConfigured and initialised codec chip \n");
 
@@ -40,16 +40,13 @@ extern "C" void app_main()
     short * speech_out = (short*)calloc(40000,sizeof(short));
      short * speech_out_pack = (short*)calloc(160,sizeof(short));
     unsigned char * frame_bits = (unsigned char *)calloc(8,1);
+
     while(1) 
     {
         ESP_LOGI(TAG,"RECORDING");
         static size_t bytes_read = 0;
         i2s_read(I2S_NUM_0, (short*)speech_in, 80000, &bytes_read, portMAX_DELAY);
-        ESP_LOGI(TAG,"HAVE RECORDED %u BYTES, %u SAMPLES", bytes_read, bytes_read/sizeof(short));
-        // for (int i = 0; i < 80000; i++)
-        // speech_in[i] = (short)hp_filter.Update((float)speech_in[i]);    
-        // for (int i = 0; i < 80000; i++)
-        // speech_in[i] = (short)lp_filter.Update((float)speech_in[i]);   
+        ESP_LOGI(TAG,"HAVE RECORDED %u BYTES, %u SAMPLES", bytes_read, bytes_read/sizeof(short)); 
         // i2s_mono_fix(16,(uint8_t*)speech_in,80000);
 
         for(int i = 0; i < 80000; i+= cdc2.SPEECH_SIZE) 
@@ -59,6 +56,12 @@ extern "C" void app_main()
             codec2_decode(cdc2.codec2_state, speech_out_pack, frame_bits);
             memcpy((short*)speech_out+i, (short*)speech_out_pack,cdc2.SPEECH_SIZE*2);
         }
+        // for (int i = 0; i < 80000; i++)
+        // speech_in[i] = (short)hp_filter.Update((float)speech_in[i]); 
+        // for (int i = 0; i < 80000; i++)
+        // speech_in[i] = (short)lp_filter.Update((float)speech_in[i]);     
+
+
         ESP_LOGI(TAG,"PASSED. WRITING");
         static size_t bytes_written = 0;
         i2s_write(I2S_NUM_1, (short*)speech_out, 80000, &bytes_written, portMAX_DELAY);
@@ -114,7 +117,7 @@ void codec2_data_init(my_struct* cdc2) // to be used once
     printf("SPEECH SAMPLE SIZE %u \n\n bytes",cdc2->SPEECH_SIZE);
     printf("ENCODE FRAME SIZE %u \n\n bytes",cdc2->FRAME_SIZE);
     cdc2->codec2_state = codec2_create(mode);
-    codec2_set_lpc_post_filter(cdc2->codec2_state, 1, 0, 1, 1);
+    codec2_set_lpc_post_filter(cdc2->codec2_state, 1, 0, 0.5, 0.5);
     cdc2->READ_FLAG = 0;
     cdc2->WRITE_FLAG = 0;
     cdc2->speech_in = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
