@@ -16,7 +16,7 @@ extern "C" void app_main()
     // Serial.begin(115200);
     // while(!Serial){;}
     // ESP_LOGI(TAG, "Initialised Arduino \n");
-    // TaskHandle_t READ_Handle = NULL;
+    TaskHandle_t READ_Handle = NULL;
 
     cdc2.mode = CODEC2_MODE_3200;
     audio_element_handle_t i2s_reader;
