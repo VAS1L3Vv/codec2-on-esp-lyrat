@@ -6,7 +6,7 @@ Eng. Deulis Antonio Pelegrin Jaime
 2020-06-17
 */
 
-#define FastAudioFIFO_SIZE 2048 //MUST BE POWER OF 2 !!!
+#define FastAudioFIFO_SIZE 64 //MUST BE POWER OF 2 !!!
 #define FastAudioFIFO_MASK (FastAudioFIFO_SIZE-1)
 
 class FastAudioFIFO 
@@ -24,27 +24,73 @@ public:
 		// if (full())
 		// 	return false;
 
-		//std::lock_guard<std::mutex> lock(mutex_);
-		buf_[(head_++) & FastAudioFIFO_MASK] = item;
+		// std::lock_guard<std::mutex> lock(mutex_);
+		int16_buf_[(head_++) & FastAudioFIFO_MASK] = item;
 
 		return true;
 	}
 
+	bool put(uint8_t item)
+	{
+		// if (full())
+		// 	return false;
+
+		// std::lock_guard<std::mutex> lock(mutex_);
+		uint8_buf_[(head_++) & FastAudioFIFO_MASK] = item;
+
+		return true;
+	}
+
+	bool put_frame(uint8_t * item, int frame_size)
+	{
+		if (full())
+			return false;
+
+		// std::lock_guard<std::mutex> lock(mutex_);
+
+		for(int i = 0; i < frame_size; i++)
+		frame_buf_[(head_) & FastAudioFIFO_MASK][i] = *(item+i);
+		head_++;
+		return true;
+	}
 	bool get(short* item)
 	{
-		//std::lock_guard<std::mutex> lock(mutex_);
+		// std::lock_guard<std::mutex> lock(mutex_);
 
 		if (empty())
 			return false;
 
-		*item = buf_[(tail_++) & FastAudioFIFO_MASK];
+		*item = int16_buf_[(tail_++) & FastAudioFIFO_MASK];
 
+		return true;
+	}
+
+	bool get(uint8_t* item)
+	{
+		// std::lock_guard<std::mutex> lock(mutex_);
+
+		if (empty())
+			return false;
+
+		*item = uint8_buf_[(tail_++) & FastAudioFIFO_MASK];
+
+		return true;
+	}
+
+	bool get_frame(uint8_t* item, int frame_size)
+	{
+		// std::lock_guard<std::mutex> lock(mutex_);
+		if (empty())
+			return false;
+		for(int i = 0; i < frame_size; i++)
+		*(item+i) = frame_buf_[(tail_) & FastAudioFIFO_MASK][i];
+		tail_++;
 		return true;
 	}
 
 	void reset(void)
 	{
-		//std::lock_guard<std::mutex> lock(mutex_);
+		// std::lock_guard<std::mutex> lock(mutex_);
 		head_ = tail_;
 	}
 
@@ -71,8 +117,10 @@ public:
 	}
 
 private:
-	//std::mutex mutex_;
-	int16_t buf_[FastAudioFIFO_SIZE];
+	// std::mutex mutex_;
+	int16_t int16_buf_[FastAudioFIFO_SIZE];
+	uint8_t uint8_buf_[FastAudioFIFO_SIZE];
+	uint8_t frame_buf_[FastAudioFIFO_SIZE][8];
 	size_t head_ = 0;
 	size_t tail_ = 0;
 };

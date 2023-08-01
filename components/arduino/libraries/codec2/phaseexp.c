@@ -1022,7 +1022,7 @@ static float bins[] = {/*
 void smooth_phase3(struct PEXP *pexp, MODEL *model) {
     int    m, i;
     int   nbins;
-    int   b;
+    int   b = 0;
     float f, best_Wo, pred, err;
     COMP  av[MAX_BINS];
 
@@ -1096,7 +1096,7 @@ void smooth_phase3(struct PEXP *pexp, MODEL *model) {
 void cb_phase1(struct PEXP *pexp, MODEL *model) {
     int   m, i;
     int   nbins;
-    int   b;
+    int   b = 0;
     float f, best_Wo;
     float max_val[MAX_BINS];
     int   max_ind[MAX_BINS];
