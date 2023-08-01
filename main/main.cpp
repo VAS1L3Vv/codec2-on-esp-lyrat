@@ -4,7 +4,7 @@
     FastAudioFIFO speech_buf;
     FastAudioFIFO frame_buf;
     void read_dma(void * arg);
-
+    SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
 extern "C" void app_main()
 {
     static const char *TAG = "STARTED MAIN";
@@ -16,7 +16,6 @@ extern "C" void app_main()
     // while(!Serial){;}
     // ESP_LOGI(TAG, "Initialised Arduino \n");
     TaskHandle_t Rx_Handle = NULL;
-
     cdc2.mode = CODEC2_MODE_2400;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
@@ -29,7 +28,6 @@ extern "C" void app_main()
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
     audio_element_info_t i2s_info = I2S_INFO();
-
     ButterworthFilter hp_filter(600, 8000, ButterworthFilter::ButterworthFilter::Highpass, 1);
     ButterworthFilter lp_filter(3500, 8000, ButterworthFilter::ButterworthFilter::Lowpass, 1);
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
@@ -50,9 +48,23 @@ extern "C" void app_main()
     static unsigned int i = 1;
     while(1)
     {
+        // if(frame_buf.empty()) {
+        // for(;;)
+        // {
+        //     if(frame_buf.len() > 1)
+        //     break;
+        //     else continue;
+        // }}
         // printf("WRITING\n");
-        // cdc2.WRITE_FLAG = WRITING;
-        frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
+        cdc2.WRITE_FLAG = WRITING;
+
+        // xSemaphoreTake(mutex, portMAX_DELAY);
+        if(!frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE))
+        {
+        printf("FRAME BUFFER EMPTY!!!");
+        continue;
+        }
+        else{
         codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
         // printf("DECODED %u BYTE FRAME.\n",cdc2.FRAME_SIZE);
         static size_t bytes_written = 0;
@@ -60,7 +72,8 @@ extern "C" void app_main()
         // printf("HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
         cdc2.WRITE_FLAG = WRITING_DONE;
         // printf("FINISHED CYCLE №%u\n",i);
-        i++;
+        // i++;
+        }
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
@@ -76,15 +89,21 @@ void read_dma(void * arg)
     short * speech_in = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
     while(1)
     {
-    if(frame_buf.full()) {
-    printf("FRAME BUFFER FULL!!! \n");
-    }
+    //     for(;;)
+    //     {
+    //         if(frame_buf.len() < FastAudioFIFO_SIZE-1)
+    //         break;
+    //         else continue;
+    //     }
+        if(!frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE)) {
+        printf("FRAME BUFFER FULL!!! \n");
+        continue;
+        }
     printf("READING \n");
     cdc2.READ_FLAG = READING;
     i2s_read(I2S_NUM_0, (short*)speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
     codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
     printf("ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
-    frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
     printf("FRAMES IN BUFFER: %u\n",frame_buf.len());
     cdc2.READ_FLAG = READING_DONE;
     }
