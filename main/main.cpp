@@ -1,6 +1,5 @@
 #include "project_header.h"
 
-
     my_struct cdc2; 
     FastAudioFIFO speech_buf;
     FastAudioFIFO frame_buf;
@@ -16,9 +15,9 @@ extern "C" void app_main()
     // Serial.begin(115200);
     // while(!Serial){;}
     // ESP_LOGI(TAG, "Initialised Arduino \n");
-    TaskHandle_t READ_Handle = NULL;
+    TaskHandle_t Rx_Handle = NULL;
 
-    cdc2.mode = CODEC2_MODE_3200;
+    cdc2.mode = CODEC2_MODE_2400;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
@@ -40,7 +39,7 @@ extern "C" void app_main()
     i2s_writer = i2s_stream_init(&i2s_write_cfg); 
     // audio_element_setinfo(i2s_reader,&i2s_info);
     codec2_data_init(&cdc2);                 
-    xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &READ_Handle, 1); 
+    xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Rx_Handle, 1); 
         // for (int i = 0; i < 80000; i++)
         // speech_in[i] = (short)hp_filter.Update((float)speech_in[i]); 
         // for (int i = 0; i < 80000; i++)
@@ -48,21 +47,20 @@ extern "C" void app_main()
     uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
     int16_t * speech_out = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
 
-        static unsigned int i = 1;
+    static unsigned int i = 1;
     while(1)
     {
-        // // printf("WAITING FOR READ \n");
-        // frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
         // printf("WRITING\n");
         // cdc2.WRITE_FLAG = WRITING;
-        // codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
+        frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
+        codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
         // printf("DECODED %u BYTE FRAME.\n",cdc2.FRAME_SIZE);
-        // static size_t bytes_written = 0;
-        // i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
+        static size_t bytes_written = 0;
+        i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
         // printf("HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
-        // cdc2.WRITE_FLAG = WRITING_DONE;
+        cdc2.WRITE_FLAG = WRITING_DONE;
         // printf("FINISHED CYCLE №%u\n",i);
-        // i++;
+        i++;
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
@@ -71,38 +69,30 @@ extern "C" void app_main()
 }
 
 void read_dma(void * arg)
-{
-    frame_buf.init();
+{ 
     static const char * TAG = "READ";
+    static size_t bytes_read = 0;
     uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
-    uint8_t * frame_bits_out = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
+    short * speech_in = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
     while(1)
     {
-    printf("TASK RUNNIG \n");
+    if(frame_buf.full()) {
+    printf("FRAME BUFFER FULL!!! \n");
+    }
+    printf("READING \n");
     cdc2.READ_FLAG = READING;
-    static size_t bytes_read = 0;
-    i2s_read(I2S_NUM_0, (short*)cdc2.speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
-    codec2_encode(cdc2.codec2_state, frame_bits, cdc2.speech_in);
+    i2s_read(I2S_NUM_0, (short*)speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
+    codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
     printf("ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
     frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
-    // printf("EMPTY: %u",frame_buf.empty());
-    printf("AVAILABLE: %u\n",frame_buf.available());
     printf("FRAMES IN BUFFER: %u\n",frame_buf.len());
     cdc2.READ_FLAG = READING_DONE;
-        if(frame_buf.full()){
-        printf("FRAME BUFFER FULL!!! \n");    
-        for(;;)
-        {
-            frame_buf.get_frame(frame_bits_out,cdc2.FRAME_SIZE);
-            printf("AVAILABLE: %u\n",frame_buf.available());
-            printf("FRAMES IN BUFFER: %u\n",frame_buf.len());
-            if(frame_buf.empty())
-            break;
-        }
-    
-    }
     }
 }
+
+
+
+
 
 void codec2_data_init(my_struct* cdc2) // to be used once
 {
