@@ -9,6 +9,7 @@ Eng. Deulis Antonio Pelegrin Jaime
 #define FastAudioFIFO_SIZE 8 //MUST BE POWER OF 2 !!!
 #define FastAudioFIFO_MASK (FastAudioFIFO_SIZE-1)
 
+SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
 class FastAudioFIFO 
 {
 public:
@@ -43,22 +44,25 @@ public:
 
 	bool put_frame(uint8_t * item, int frame_size)
 	{
-		if (full())
-			return false;
+		// if (full())
+		// 	return false;
 
 		// std::lock_guard<std::mutex> lock(mutex_);
 
-		for(int i = 0; i < frame_size; i++)
+		xSemaphoreTake(mutex, portMAX_DELAY);
+		for(int i = 0; i < frame_size; i++){
 		frame_buf_[(head_) & FastAudioFIFO_MASK][i] = *(item+i);
+		}
 		head_++;
+		xSemaphoreGive(mutex);
 		return true;
 	}
 	bool get(short* item)
 	{
 		// std::lock_guard<std::mutex> lock(mutex_);
 
-		if (empty())
-			return false;
+		// if (empty())
+		// 	return false;
 
 		*item = int16_buf_[(tail_++) & FastAudioFIFO_MASK];
 
@@ -69,8 +73,10 @@ public:
 	{
 		// std::lock_guard<std::mutex> lock(mutex_);
 
-		if (empty())
-			return false;
+		// if (empty()) {
+		// 	printf("EMPTY \n");
+		// 	return false;
+		// }
 
 		*item = uint8_buf_[(tail_++) & FastAudioFIFO_MASK];
 
@@ -80,14 +86,18 @@ public:
 	bool get_frame(uint8_t* item, int frame_size)
 	{
 		// std::lock_guard<std::mutex> lock(mutex_);
-		if (empty())
-			return false;
-		for(int i = 0; i < frame_size; i++)
+		// if (empty())
+		// 	return false;
+
+		xSemaphoreTake(mutex, portMAX_DELAY);
+		for(int i = 0; i < frame_size; i++) {
 		*(item+i) = frame_buf_[(tail_) & FastAudioFIFO_MASK][i];
+		}
 		tail_++;
+        xSemaphoreGive(mutex);
 		return true;
 	}
-
+	
 	void reset(void)
 	{
 		// std::lock_guard<std::mutex> lock(mutex_);
