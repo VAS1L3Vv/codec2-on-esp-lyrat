@@ -1,27 +1,25 @@
 #include "project_header.h"
-
-    my_struct cdc2; 
+    my_struct cdc2;
     FastAudioFIFO speech_buf;
     FastAudioFIFO frame_buf;
     void read_dma(void * arg);
     void write_dma(void * arg);
-    SemaphoreHandle_t mutex_i2s_read = xSemaphoreCreateMutex();
-    SemaphoreHandle_t mutex_i2s_write = xSemaphoreCreateMutex();
-    SemaphoreHandle_t mutex2_ = xSemaphoreCreateMutex();
+    SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
+    SemaphoreHandle_t mutex1 = xSemaphoreCreateMutex();
+    TaskHandle_t Tx_Handle = NULL;
+    TaskHandle_t Rx_Handle = NULL;
+    QueueHandle_t queue;
+
 extern "C" void app_main()
 {
     static const char *TAG = "STARTED MAIN";
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
-
     // initArduino();
     // Serial.begin(115200);
     // while(!Serial){;}
     // ESP_LOGI(TAG, "Initialised Arduino \n");
-
-    TaskHandle_t Tx_Handle = NULL;
-    TaskHandle_t Rx_Handle = NULL;
-    cdc2.mode = CODEC2_MODE_3200;
+    cdc2.mode = CODEC2_MODE_2400;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
@@ -51,21 +49,17 @@ extern "C" void app_main()
     int16_t * speech_out = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
     static unsigned int i = 1;
     static size_t bytes_written = 0;
-
     while(1)
     {
-        while(frame_buf.empty()) {
-            ESP_LOGD(TAG,"WAITING TO GET FRAME\n");
-            }
-        ESP_LOGD(TAG,"WRITING\n");
-        // cdc2.WRITE_FLAG = WRITING;
-        frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
+        xSemaphoreTake(mutex1, portMAX_DELAY);
+        if( xQueueReceive(queue, &frame_bits, (TickType_t)75))
+    {
+        // ESP_LOGD(TAG,"WRITING\n");
         codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
         xSemaphoreGive(mutex1);
         // ESP_LOGD(TAG,"DECODED %u BYTE FRAME.\n",cdc2.FRAME_SIZE);
-        xSemaphoreTake(mutex, portMAX_DELAY);
         i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
-        xSemaphoreGive(mutex);
+    }
         // ESP_LOGD(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
         // cdc2.WRITE_FLAG = WRITING_DONE;
         // ESP_LOGD(TAG,"FINISHED CYCLE №%u\n",i);
@@ -78,33 +72,21 @@ extern "C" void app_main()
 }
 
 void read_dma(void * arg)
-{ 
+{
     static const char * TAG = "READ";
     static size_t bytes_read = 0;
     uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
     short * speech_in = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
-
+    queue = xQueueCreate(64, sizeof(uint8_t)); 
     ESP_LOGD(TAG,"HAVE STARTED READ TASK");
     while(1)
     {
-    // ESP_LOGD(TAG,"READING \n"); 
-    // cdc2.READ_FLAG = READING;
-    // xSemaphoreTake(mutex, portMAX_DELAY);
     i2s_read(I2S_NUM_0, (short*)speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
-    // xSemaphoreGive(mutex);
-    // xSemaphoreTake(mutex1, portMAX_DELAY);
+    xSemaphoreTake(mutex, portMAX_DELAY);
     codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
-    // xSemaphoreGive(mutex1);
-    // ESP_LOGD(TAG,"ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
-    while(frame_buf.full()) 
-    {
-        ESP_LOGD(TAG,"WAITING TO PUT FRAME \n");
-    }
-    // xSemaphoreTake(mutex2, portMAX_DELAY);
-    frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
-    // ESP_LOGD(TAG,"FRAMES IN BUFFER: %u\n",frame_buf.len());
-    // cdc2.READ_FLAG = READING_DONE;
-    // xSemaphoreGive(mutex2);
+    xSemaphoreGive(mutex);
+    if(xQueueSend(queue, (uint8_t*)frame_bits,(TickType_t)70) == pdFALSE) printf("ERROR SENDING");
+    ESP_LOGD(TAG,"ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
     }
 }
 
