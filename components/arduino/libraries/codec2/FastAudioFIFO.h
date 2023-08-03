@@ -9,7 +9,6 @@ Eng. Deulis Antonio Pelegrin Jaime
 #define FastAudioFIFO_SIZE 8 //MUST BE POWER OF 2 !!!
 #define FastAudioFIFO_MASK (FastAudioFIFO_SIZE-1)
 
-SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
 class FastAudioFIFO 
 {
 public:
