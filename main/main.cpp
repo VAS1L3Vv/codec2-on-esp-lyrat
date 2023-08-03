@@ -39,7 +39,7 @@ extern "C" void app_main()
     // audio_element_setinfo(i2s_reader,&i2s_info);
     codec2_data_init(&cdc2);                 
     xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
-    xTaskCreatePinnedToCore(write_dma,"Write_DMA", 50*1024, NULL, 3, &Rx_Handle, 0);  
+    xTaskCreate(write_dma,"Write_DMA", 50*1024, NULL, 4, &Rx_Handle);  
     while(1) {;}
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
@@ -76,11 +76,11 @@ void write_dma(void * arg)
         // xSemaphoreTake(mutex, portMAX_DELAY);
         // xSemaphoreGive(mutex);
     static const char * TAG = "WRITE";
+    ESP_LOGD(TAG,"HAVE STARTED WRITE TASK");
     uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
     int16_t * speech_out = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
     static unsigned int i = 1;
     static size_t bytes_written = 0;
-    ESP_LOGD(TAG,"HAVE STARTED WRITE TASK");
     while(1)
     {
         while(frame_buf.empty()) {ESP_LOGD(TAG,"WAITING TO GET FRAME\n");}
@@ -96,10 +96,6 @@ void write_dma(void * arg)
         i++;
     }
 }
-
-
-
-
 
 void codec2_data_init(my_struct* cdc2) // to be used once
 {

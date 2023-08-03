@@ -49,12 +49,13 @@ public:
 
 		// std::lock_guard<std::mutex> lock(mutex_);
 
-		xSemaphoreTake(mutex, portMAX_DELAY);
 		for(int i = 0; i < frame_size; i++){
+		// xSemaphoreTake(mutex, portMAX_DELAY);
 		frame_buf_[(head_) & FastAudioFIFO_MASK][i] = *(item+i);
+
 		}
 		head_++;
-		xSemaphoreGive(mutex);
+		// xSemaphoreGive(mutex);
 		return true;
 	}
 	bool get(short* item)
@@ -89,12 +90,12 @@ public:
 		// if (empty())
 		// 	return false;
 
-		xSemaphoreTake(mutex, portMAX_DELAY);
+		// xSemaphoreTake(mutex, portMAX_DELAY);
 		for(int i = 0; i < frame_size; i++) {
 		*(item+i) = frame_buf_[(tail_) & FastAudioFIFO_MASK][i];
 		}
 		tail_++;
-        xSemaphoreGive(mutex);
+		// xSemaphoreGive(mutex);
 		return true;
 	}
 	
