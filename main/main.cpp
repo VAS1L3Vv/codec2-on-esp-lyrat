@@ -20,7 +20,7 @@ extern "C" void app_main()
 
     TaskHandle_t Tx_Handle = NULL;
     TaskHandle_t Rx_Handle = NULL;
-        cdc2.mode = CODEC2_MODE_3200;
+    cdc2.mode = CODEC2_MODE_1200;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
@@ -36,10 +36,10 @@ extern "C" void app_main()
     ButterworthFilter lp_filter(3500, 8000, ButterworthFilter::ButterworthFilter::Lowpass, 1);
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
     ESP_LOGI(TAG, "\n\nConfigured and initialised codec chip \n");
+    esp_timer_early_init();
 
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
     i2s_writer = i2s_stream_init(&i2s_write_cfg); 
-    esp_timer_early_init();
     // audio_element_setinfo(i2s_reader,&i2s_info);
     codec2_data_init(&cdc2);                 
     xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
@@ -53,25 +53,25 @@ extern "C" void app_main()
     static size_t bytes_written = 0; 
     while(1)
     {
-        while(frame_buf.empty())
-            {
-            ESP_LOGI(TAG,"WAITING TO GET FRAME\n");
-            continue;
-        }
-        while (cdc2.WRITE_FLAG == READING){continue;}
-        cdc2.WRITE_FLAG = WRITING;
-        // ESP_LOGI(TAG,"WRITING\n");
-        frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
-        cdc2.WRITE_FLAG = WRITING_DONE;
-        codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
-        ESP_LOGI(TAG,"DECODED %u BYTE FRAME.\n",cdc2.FRAME_SIZE);
-        i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
-        // ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
-        xSemaphoreTake(mutex, portMAX_DELAY);
-        cdc2.WRITE_FLAG = WRITING_DONE;
-        xSemaphoreGive(mutex);
+        // while(frame_buf.empty())
+        //     {
+        //     ESP_LOGI(TAG,"WAITING TO GET FRAME\n");
+        //     continue;
+        // }
+        // while (cdc2.WRITE_FLAG == READING){continue;}
+        // cdc2.WRITE_FLAG = WRITING;
+        // // ESP_LOGI(TAG,"WRITING\n");
+        // frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
+        // cdc2.WRITE_FLAG = WRITING_DONE;
+        // codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
+        // ESP_LOGI(TAG,"DECODED %u BYTE FRAME.\n",cdc2.FRAME_SIZE);
+        // i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
+        // // ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
+        // xSemaphoreTake(mutex, portMAX_DELAY);
+        // cdc2.WRITE_FLAG = WRITING_DONE;
+        // xSemaphoreGive(mutex);
 
-        // ESP_LOGI(TAG,"FINISHED CYCLE №%u\n",i);
+        // // ESP_LOGI(TAG,"FINISHED CYCLE №%u\n",i);
 
     }
     audio_element_deinit(i2s_reader);
@@ -87,16 +87,36 @@ void read_dma(void * arg)
     uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
     short * speech_in = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
     ESP_LOGI(TAG,"HAVE STARTED READ TASK");
+    long start, stop;
+
     while(1)
     {
     // while (cdc2.WRITE_FLAG == WRITING){continue;}
+    start = esp_timer_get_time();
     cdc2.READ_FLAG = READING;
+    stop = esp_timer_get_time();
+    printf("OPERATION READ_FLAG=  TOOK %ld us \n", stop - start);
+    start = esp_timer_get_time();
     i2s_read(I2S_NUM_0, (short*)speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
+    stop = esp_timer_get_time();
+    printf("FUNCTION 12S READ TOOK %ld us \n", stop - start);
+    start = esp_timer_get_time();
     codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
+    stop = esp_timer_get_time();
+    printf("FUNCTION ENCODER TOOK %ld us \n", stop - start);
     // ESP_LOGI(TAG,"ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
-    while(frame_buf.full()) {continue;}
-        ESP_LOGI(TAG,"WAITING TO PUT FRAME \n");
+    start = esp_timer_get_time();
+    frame_buf.full();
+    stop = esp_timer_get_time();
+    printf("FUNCTION FRAME_BUF.FULL TOOK %ld us \n", stop - start);
+    start = esp_timer_get_time();
+    ESP_LOGI(TAG,"WAITING TO PUT FRAME \n");
+    stop = esp_timer_get_time();
+    printf("FUNCTION ESP_LOGI[20] TOOK %ld us \n", stop - start);
+    start = esp_timer_get_time();
     frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
+    stop = esp_timer_get_time();
+    printf("FUNCTION PUT_FRAME TOOK %ld us \n", stop - start);
     cdc2.READ_FLAG = READING_DONE;
     // ESP_LOGI(TAG,"FRAMES IN BUFFER: %u\n",frame_buf.len());
     }
