@@ -7,6 +7,7 @@
     void write_dma(void * arg);
     SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
     esp_timer_handle_t timer;
+
 extern "C" void app_main()
 {
     static const char *TAG = "STARTED MAIN";
@@ -18,9 +19,9 @@ extern "C" void app_main()
     // while(!Serial){;}
     // ESP_LOGI(TAG, "Initialised Arduino \n");
 
-    TaskHandle_t Tx_Handle = NULL;
+        TaskHandle_t Tx_Handle = NULL;
     TaskHandle_t Rx_Handle = NULL;
-    cdc2.mode = CODEC2_MODE_1200;
+    cdc2.mode = CODEC2_MODE_2400;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
@@ -84,41 +85,58 @@ void read_dma(void * arg)
 {
     static const char * TAG = "READ";
     static size_t bytes_read = 0;
-    uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
-    short * speech_in = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
+    uint8_t * frame_bits = (uint8_t*)malloc(cdc2.FRAME_SIZE*sizeof(uint8_t));
+    short * speech_in = (int16_t*)malloc(cdc2.SPEECH_SIZE*sizeof(int16_t));
     ESP_LOGI(TAG,"HAVE STARTED READ TASK");
     long start, stop;
-
     while(1)
     {
+    static double avg_i2sr = 0;
+    static double avg_cdc2 = 0; 
+    static double avg_ptfr = 0;
+    static long N = 1;
+
+    if (N == 1000)
+    {
+        avg_i2sr = avg_i2sr / N;
+        avg_cdc2 = avg_cdc2 / N;
+        avg_ptfr = avg_ptfr / N;
+        printf("current iteration %ld", N);
+        printf("\n\n\nAVG 12S READ %f us\n", avg_i2sr);
+        printf("AVG ENCODER %f us\n", avg_cdc2);
+        printf("AVG PUT_FRAME %f us \n", avg_ptfr);
+        float avg = (float)((avg_i2sr+avg_cdc2+avg_ptfr)/1000);
+        printf("AVG READ + ENCODE TIME = %f ms \n\n\n", avg);
+        while(1){;}
+    }
     // while (cdc2.WRITE_FLAG == WRITING){continue;}
-    start = esp_timer_get_time();
-    cdc2.READ_FLAG = READING;
-    stop = esp_timer_get_time();
-    printf("OPERATION READ_FLAG=  TOOK %ld us \n", stop - start);
+    // start = esp_timer_get_time();
+    // cdc2.READ_FLAG = READING;
+    // stop = esp_timer_get_time();
+    // printf("OPERATION READ_FLAG=  TOOK %f us \n", stop - start);
     start = esp_timer_get_time();
     i2s_read(I2S_NUM_0, (short*)speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
     stop = esp_timer_get_time();
-    printf("FUNCTION 12S READ TOOK %ld us \n", stop - start);
+    avg_i2sr += stop - start;
+    // printf(" \n 12S READ %f us\n", avg_i2sr);
     start = esp_timer_get_time();
     codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
     stop = esp_timer_get_time();
-    printf("FUNCTION ENCODER TOOK %ld us \n", stop - start);
+    avg_cdc2 += stop - start;
+    // printf("ENCODER %f us\n", avg_cdc2);
     // ESP_LOGI(TAG,"ENCODED %u SAMPLES.\n",cdc2.SPEECH_SIZE);
-    start = esp_timer_get_time();
-    frame_buf.full();
-    stop = esp_timer_get_time();
-    printf("FUNCTION FRAME_BUF.FULL TOOK %ld us \n", stop - start);
-    start = esp_timer_get_time();
-    ESP_LOGI(TAG,"WAITING TO PUT FRAME \n");
-    stop = esp_timer_get_time();
-    printf("FUNCTION ESP_LOGI[20] TOOK %ld us \n", stop - start);
+    // start = esp_timer_get_time();
+    // frame_buf.full();
+    // stop = esp_timer_get_time();
+    // printf("FUNCTION FRAME_BUF.FULL TOOK %f us \n", stop - start);
     start = esp_timer_get_time();
     frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
     stop = esp_timer_get_time();
-    printf("FUNCTION PUT_FRAME TOOK %ld us \n", stop - start);
-    cdc2.READ_FLAG = READING_DONE;
+    avg_ptfr += stop - start;
+    // printf("PUT_FRAME %f us \n\n", avg_ptfr);
+    // cdc2.READ_FLAG = READING_DONE;
     // ESP_LOGI(TAG,"FRAMES IN BUFFER: %u\n",frame_buf.len());
+    N++;
     }
 }
 
