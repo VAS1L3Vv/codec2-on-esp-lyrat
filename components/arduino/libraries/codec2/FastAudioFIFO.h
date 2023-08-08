@@ -6,7 +6,7 @@ Eng. Deulis Antonio Pelegrin Jaime
 2020-06-17
 */
 
-#define FastAudioFIFO_SIZE 4 //MUST BE POWER OF 2 !!!
+#define FastAudioFIFO_SIZE 16 //MUST BE POWER OF 2 !!!
 #define FastAudioFIFO_MASK (FastAudioFIFO_SIZE-1)
 
 
