@@ -4,7 +4,6 @@
     FastAudioFIFO speech_buf;
     FastAudioFIFO frame_buf;
     void read_dma(void * arg);
-    // void write_dma(void * arg);
     SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
     esp_timer_handle_t timer;
 
@@ -16,14 +15,9 @@ extern "C" void app_main()
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
-    // initArduino();
-    // Serial.begin(115200);
-    // while(!Serial){;}
-    // ESP_LOGI(TAG, "Initialised Arduino \n");
-
-        TaskHandle_t Tx_Handle = NULL;
+    TaskHandle_t Tx_Handle = NULL;
     TaskHandle_t Rx_Handle = NULL;
-    cdc2.mode = CODEC2_MODE_3200;
+    cdc2.mode = CODEC2_MODE_2400;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
@@ -35,70 +29,28 @@ extern "C" void app_main()
     audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
     esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
     audio_element_info_t i2s_info = I2S_INFO();
-    ButterworthFilter hp_filter(600, 8000, ButterworthFilter::ButterworthFilter::Highpass, 1);
-    ButterworthFilter lp_filter(3500, 8000, ButterworthFilter::ButterworthFilter::Lowpass, 1);
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
-    ESP_LOGI(TAG, "\n\nConfigured and initialised codec chip \n");
     esp_timer_early_init();
 
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
     i2s_writer = i2s_stream_init(&i2s_write_cfg); 
-    // audio_element_setinfo(i2s_reader,&i2s_info);
     codec2_data_init(&cdc2);                 
     xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
-    // vTaskDelay(5000/portTICK_RATE_MS);
-    // xTaskCreate(write_dma,"Write_DMA", 50*1024, NULL, 4, &Rx_Handle);  
-    
-    // static const char * TAG = "WRITE";
-    ESP_LOGD(TAG,"HAVE STARTED WRITE TASK");
     uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
     int16_t * speech_out = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
-    static unsigned int i = 1;
-    static size_t bytes_written = 0; 
-
-    long start, stop, start_1, stop_1, startex, stopex;
-    static double avg_i2sw_full, avg_cdc2_full, avg_gtfr_full, avg_realtime_full, avg_esp_time_full;
-    static double avg_i2sw = 0;
-    static double avg_cdc2 = 0; 
-    static double avg_gtfr = 0;
-    static double avg_realtime = 0;
-    static double avg_esp_time = 0;
-    static double avg_t = 0;
-    static long N_W = 1;
-    static long N_R;
+    size_t bytes_written;
     while(1)
     {
-    //     if (N % 500 == 0)
-    // {
-    //     avg_i2sw_full = avg_i2sw / N;
-    //     avg_cdc2_full = avg_cdc2 / N;
-    //     avg_gtfr_full = avg_gtfr / N;
-    //     avg_realtime_full = (avg_realtime / N)/1000;
-    //     avg_esp_time_full = avg_esp_time / N;
-    //     printf("current iteration %ld", N);
-    //     printf("\n\n\nAVG 12S WRITE %f us\n", avg_i2sw_full);
-    //     printf("AVG DECODER %f us\n", avg_cdc2_full);
-    //     printf("AVG GET_FRAME %f us \n", avg_gtfr_full);
-    //     printf("AVG ESP_TIME MEASUREMENT: %f \n", avg_esp_time_full);
-    //     float avg = (float)((avg_i2sw+avg_cdc2+avg_gtfr)/1000);
-    //     printf("AVG WRITE + DECODE TIME = %f ms \n\n\n", avg);
-    //     printf("AVG REAL TIME OF A FULL WRITE CYCLE: %f ms\n", avg_realtime_full);
-    // }
+        
         while(frame_buf.empty())
             {
-            // ESP_LOGI(TAG,"WAITING TO GET FRAME\n");
             vTaskDelay(40/portTICK_PERIOD_MS);
             continue;
         }
-        
+        vTaskDelay(1/portTICK_PERIOD_MS);
         frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
         codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
         i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
-        // ESP_LOGI(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
-        // xSemaphoreTake(mutex, portMAX_DELAY);
-        // cdc2.WRITE_FLAG = WRITING_DONE;
-        // xSemaphoreGive(mutex);
-        N_W++;
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
@@ -106,88 +58,28 @@ extern "C" void app_main()
     esp_periph_set_destroy(set);
 }
 
-
 void read_dma(void * arg)
 {
     static const char * TAG = "READ";
     static size_t bytes_read = 0;
     uint8_t * frame_bits = (uint8_t*)malloc(cdc2.FRAME_SIZE*sizeof(uint8_t));
     short * speech_in = (int16_t*)malloc(cdc2.SPEECH_SIZE*sizeof(int16_t));
-    ESP_LOGI(TAG,"HAVE STARTED READ TASK");
-    long start, stop, start_1, stop_1, startex, stopex;
-    static double avg_i2sr_full, avg_cdc2_full, avg_ptfr_full, avg_realtime_full, avg_esp_time_full;
-    static double avg_i2sr = 0;
-    static double avg_cdc2 = 0; 
-    static double avg_ptfr = 0;
-    static double avg_realtime = 0;
-    static double avg_esp_time = 0;
-    static double avg_t = 0;
-    static long N = 1;
-    
     while(1)
     {
-    // if (N % 5000 == 0)
-    // {
-    //     avg_i2sr_full = avg_i2sr / N;
-    //     avg_cdc2_full = avg_cdc2 / N;
-    //     avg_ptfr_full = avg_ptfr / N;
-    //     avg_realtime_full = (avg_realtime / N)/1000;
-    //     avg_esp_time_full = avg_esp_time / N;
-    //     printf("current iteration %ld", N);
-    //     printf("\n\n\nAVG 12S READ %f us\n", avg_i2sr_full);
-    //     printf("AVG ENCODER %f us\n", avg_cdc2_full);
-    //     printf("AVG PUT_FRAME %f us \n", avg_ptfr_full);
-    //     printf("AVG ESP_TIME MEASUREMENT: %f \n", avg_esp_time_full);
-    //     float avg = (float)((avg_i2sr+avg_cdc2+avg_ptfr)/1000);
-    //     printf("AVG READ + ENCODE TIME = %f ms \n\n\n", avg);
-    //     printf("AVG REAL TIME OF A FULL READ CYCLE: %f ms\n", avg_realtime_full);
-    // }
+
     while(frame_buf.full())
-            {
-            // vTaskDelay(1/portTICK_PERIOD_MS);
-            continue;
-        }
-    start_1 = esp_timer_get_time();
-    start = esp_timer_get_time();
+        {
+        vTaskDelay(1/portTICK_PERIOD_MS);
+        continue;
+     }
     i2s_read(I2S_NUM_0, (short*)speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
-    stop = esp_timer_get_time();
-    avg_i2sr += stop - start;
-    start = esp_timer_get_time();
+    vTaskDelay(2/portTICK_PERIOD_MS);
     codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
-    stop = esp_timer_get_time();
-    avg_cdc2 += stop - start;
-    // vTaskDelay(1/portTICK_PERIOD_MS);
     frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
-    // cdc2.READ_FLAG = READING_DONE;
-    stop_1 = esp_timer_get_time();
-    N++;
     }
 }
 
-// void write_dma(void * arg)
-// {
-//         
-//     static const char * TAG = "WRITE";
-//     ESP_LOGD(TAG,"HAVE STARTED WRITE TASK");
-//     uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
-//     int16_t * speech_out = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
-//     static unsigned int i = 1;
-//     static size_t bytes_written = 0;
-//     while(1)
-//     {
-//         while(frame_buf.empty()) {ESP_LOGD(TAG,"WAITING TO GET FRAME\n");}
-//         ESP_LOGD(TAG,"WRITING\n");
-//         // cdc2.WRITE_FLAG = WRITING;
-//         frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
-//         codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
-//         ESP_LOGD(TAG,"DECODED %u BYTE FRAME.\n",cdc2.FRAME_SIZE);
-//         i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
-//         ESP_LOGD(TAG,"HAVE WRITTEN %u BYTES, %u SAMPLES\n", bytes_written, bytes_written/sizeof(short));
-//         // cdc2.WRITE_FLAG = WRITING_DONE;
-//         ESP_LOGD(TAG,"FINISHED CYCLE №%u\n",i);
-//         i++;
-//     }
-// }
+
 
 void codec2_data_init(my_struct* cdc2) // to be used once
 {
