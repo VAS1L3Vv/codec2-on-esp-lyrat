@@ -87,7 +87,7 @@ extern "C" void app_main()
         while(frame_buf.empty())
             {
             // ESP_LOGI(TAG,"WAITING TO GET FRAME\n");
-            vTaskDelay(10/portTICK_PERIOD_MS);
+            vTaskDelay(40/portTICK_PERIOD_MS);
             continue;
         }
         
@@ -156,7 +156,7 @@ void read_dma(void * arg)
     codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
     stop = esp_timer_get_time();
     avg_cdc2 += stop - start;
-    vTaskDelay(1/portTICK_PERIOD_MS);
+    // vTaskDelay(1/portTICK_PERIOD_MS);
     frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
     // cdc2.READ_FLAG = READING_DONE;
     stop_1 = esp_timer_get_time();
