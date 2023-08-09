@@ -17,7 +17,7 @@ extern "C" void app_main()
 
     TaskHandle_t Tx_Handle = NULL;
     TaskHandle_t Rx_Handle = NULL;
-    cdc2.mode = CODEC2_MODE_2400;
+    cdc2.mode = CODEC2_MODE_700B;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
@@ -44,7 +44,7 @@ extern "C" void app_main()
         
         while(frame_buf.empty())
             {
-            vTaskDelay(40/portTICK_PERIOD_MS);
+            vTaskDelay(60/portTICK_PERIOD_MS);
             continue;
         }
         vTaskDelay(1/portTICK_PERIOD_MS);
