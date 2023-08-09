@@ -123,7 +123,7 @@ void codec2_data_init(my_struct* cdc2) // to be used once
     printf("ENCODE FRAME SIZE %u \n\n",cdc2->FRAME_SIZE);
     cdc2->SPEECH_BYTES = cdc2->SPEECH_SIZE*sizeof(short);
     cdc2->codec2_state = codec2_create(mode);
-    codec2_set_lpc_post_filter(cdc2->codec2_state, 1, 0, 0.5, 0.5);
+    codec2_set_lpc_post_filter(cdc2->codec2_state, 1, 0, 0.8, 0.6);
     cdc2->READ_FLAG = READING;
     cdc2->WRITE_FLAG = WRITING_DONE;
     cdc2->speech_in = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
