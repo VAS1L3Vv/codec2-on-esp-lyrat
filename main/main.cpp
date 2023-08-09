@@ -15,42 +15,34 @@ extern "C" void app_main()
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
-    TaskHandle_t Tx_Handle = NULL;
-    TaskHandle_t Rx_Handle = NULL;
-    cdc2.mode = CODEC2_MODE_700B;
+    // TaskHandle_t Tx_Handle = NULL;
+    // cdc2.mode = CODEC2_MODE_700B;
     audio_element_handle_t i2s_reader;
     audio_element_handle_t i2s_writer;
     audio_board_handle_t board_handle = audio_board_init();
-    audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();
     i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
     i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
-    esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
-    audio_element_cfg_t cdc2_cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
-    audio_event_iface_cfg_t event_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
-    esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
-    audio_element_info_t i2s_info = I2S_INFO();
+    // esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
+    // audio_element_info_t i2s_info = I2S_INFO();
+    i2s_pin_config_t pins;
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
     esp_timer_early_init();
-
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
+    pins.bck_io_num = 5;
+    pins.data_in_num = 26;
+    pins.ws_io_num = 25;
+    ESP_ERROR_CHECK(i2s_set_pin(I2S_NUM_0, &pins));
     i2s_writer = i2s_stream_init(&i2s_write_cfg); 
-    codec2_data_init(&cdc2);                 
+    // codec2_data_init(&cdc2);                 
     xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
     uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
-    int16_t * speech_out = (int16_t*)calloc(cdc2.SPEECH_SIZE,sizeof(int16_t));
+    int16_t * speech_in = (int16_t*)calloc(80000,sizeof(int));
+    int16_t * speech_out = (int16_t*)calloc(80000,sizeof(int));
     size_t bytes_written;
     while(1)
     {
         
-        while(frame_buf.empty())
-            {
-            vTaskDelay(60/portTICK_PERIOD_MS);
-            continue;
-        }
-        vTaskDelay(1/portTICK_PERIOD_MS);
-        frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
-        codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
-        i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
+    
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
@@ -58,26 +50,36 @@ extern "C" void app_main()
     esp_periph_set_destroy(set);
 }
 
-void read_dma(void * arg)
-{
-    static const char * TAG = "READ";
-    static size_t bytes_read = 0;
-    uint8_t * frame_bits = (uint8_t*)malloc(cdc2.FRAME_SIZE*sizeof(uint8_t));
-    short * speech_in = (int16_t*)malloc(cdc2.SPEECH_SIZE*sizeof(int16_t));
-    while(1)
-    {
+// while(frame_buf.empty())
+//             {
+//             vTaskDelay(60/portTICK_PERIOD_MS);
+//             continue;
+//         }
+//         vTaskDelay(1/portTICK_PERIOD_MS);
+//         frame_buf.get_frame(frame_bits, cdc2.FRAME_SIZE);
+//         codec2_decode(cdc2.codec2_state, speech_out, frame_bits);
+//         i2s_write(I2S_NUM_1, (short*)speech_out, cdc2.SPEECH_BYTES, &bytes_written, portMAX_DELAY);
 
-    while(frame_buf.full())
-        {
-        vTaskDelay(1/portTICK_PERIOD_MS);
-        continue;
-     }
-    i2s_read(I2S_NUM_0, (short*)speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
-    vTaskDelay(2/portTICK_PERIOD_MS);
-    codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
-    frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
-    }
-}
+// void read_dma(void * arg)
+// {
+//     static const char * TAG = "READ";
+//     static size_t bytes_read = 0;
+//     uint8_t * frame_bits = (uint8_t*)malloc(cdc2.FRAME_SIZE*sizeof(uint8_t));
+//     short * speech_in = (int16_t*)malloc(cdc2.SPEECH_SIZE*sizeof(int16_t));
+//     while(1)
+//     {
+
+//     while(frame_buf.full())
+//         {
+//         vTaskDelay(1/portTICK_PERIOD_MS);
+//         continue;
+//      }
+//     i2s_read(I2S_NUM_0, (short*)speech_in, cdc2.SPEECH_BYTES, &bytes_read, portMAX_DELAY);
+//     vTaskDelay(2/portTICK_PERIOD_MS);
+//     codec2_encode(cdc2.codec2_state, frame_bits, speech_in);
+//     frame_buf.put_frame(frame_bits,cdc2.FRAME_SIZE);
+//     }
+// }
 
 
 

@@ -32,10 +32,10 @@
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
         .sample_rate = 8000,                                                    \
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                           \
-        .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,                           \
-        .communication_format = I2S_COMM_FORMAT_STAND_MSB,                      \
+        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,                           \
+        .communication_format = I2S_COMM_FORMAT_I2S,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
-        .dma_buf_count = 2,                                                     \
+        .dma_buf_count = 3,                                                     \
         .dma_buf_len = 600,                                                     \
         .use_apll = true,                                                       \
         .tx_desc_auto_clear = true,                                             \
@@ -62,8 +62,8 @@
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
         .sample_rate = 8000,                                                    \
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                           \
-        .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,                           \
-        .communication_format = I2S_COMM_FORMAT_STAND_MSB,                      \
+        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,                           \
+        .communication_format = I2S_COMM_FORMAT_I2S,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 2,                                                     \
         .dma_buf_len = 600,                                                     \
@@ -98,12 +98,6 @@
     .codec_fmt = ESP_CODEC_TYPE_UNKNOW    \
 }
 
-
-#define READING false
-#define READING_DONE true
-#define WRITING false
-#define WRITING_DONE true
-#define WRITE_LATENCY 1000
 
 typedef struct user_struct
 {
