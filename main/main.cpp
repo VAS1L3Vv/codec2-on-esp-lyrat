@@ -6,7 +6,6 @@
     void read_dma(void * arg);
     SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
     esp_timer_handle_t timer;
-
 QueueHandle_t queue = xQueueCreate(3, sizeof(long));
 
 extern "C" void app_main()
