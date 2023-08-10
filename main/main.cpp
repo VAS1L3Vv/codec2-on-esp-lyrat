@@ -28,21 +28,32 @@ extern "C" void app_main()
     audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START); 
     esp_timer_early_init();
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
-    pins.bck_io_num = 5;
-    pins.data_in_num = 26;
-    pins.ws_io_num = 25;
-    ESP_ERROR_CHECK(i2s_set_pin(I2S_NUM_0, &pins));
+    // pins.bck_io_num = 5;
+    // pins.data_in_num = 26;
+    // pins.ws_io_num = 25;
+    // ESP_ERROR_CHECK(i2s_set_pin(I2S_NUM_0, &pins));
     i2s_writer = i2s_stream_init(&i2s_write_cfg); 
     // codec2_data_init(&cdc2);                 
     // xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
     // uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
-    int16_t * speech_in = (int16_t*)calloc(80000,sizeof(int));
-    int16_t * speech_out = (int16_t*)calloc(80000,sizeof(int));
+    int * speech_in = (int*)malloc(80000*sizeof(int));
+    int * speech_out = (int*)malloc(80000*sizeof(int));
     size_t bytes_written;
+    size_t bytes_read;
     while(1)
     {
-        
-    
+        for(int i = 3; i > 0; i--)
+        {
+            printf("Recording in %u...\n",i);
+            vTaskDelay(1000/portTICK_PERIOD_MS);
+        }
+            printf("RECORDNIG\n");
+        i2s_read(I2S_NUM_0, (int*)speech_in, 80000*sizeof(int), &bytes_read, portMAX_DELAY);
+            printf("PLAYING..\n");
+            vTaskDelay(500/portTICK_PERIOD_MS);
+        i2s_write(I2S_NUM_1, (int*)speech_in, 80000*sizeof(int), &bytes_written, portMAX_DELAY);
+        printf("REPEAT.\n");
+        vTaskDelay(500/portTICK_PERIOD_MS);
     }
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
