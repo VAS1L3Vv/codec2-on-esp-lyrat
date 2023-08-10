@@ -40,6 +40,7 @@ extern "C" void app_main()
     int * speech_out = (int*)malloc(80000*sizeof(int));
     size_t bytes_written;
     size_t bytes_read;
+    
     while(1)
     {
         for(int i = 3; i > 0; i--)
