@@ -25,7 +25,7 @@ extern "C" void app_main()
     // esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
     // audio_element_info_t i2s_info = I2S_INFO();
     i2s_pin_config_t pins;
-    audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START); 
+    audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START); 
     esp_timer_early_init();
     i2s_reader = i2s_stream_init(&i2s_read_cfg);
     pins.bck_io_num = 5;
@@ -34,8 +34,8 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(i2s_set_pin(I2S_NUM_0, &pins));
     i2s_writer = i2s_stream_init(&i2s_write_cfg); 
     // codec2_data_init(&cdc2);                 
-    xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
-    uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
+    // xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
+    // uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
     int16_t * speech_in = (int16_t*)calloc(80000,sizeof(int));
     int16_t * speech_out = (int16_t*)calloc(80000,sizeof(int));
     size_t bytes_written;
@@ -47,7 +47,6 @@ extern "C" void app_main()
     audio_element_deinit(i2s_reader);
     audio_element_deinit(i2s_writer);
     codec2_data_deinit(&cdc2);
-    esp_periph_set_destroy(set);
 }
 
 // while(frame_buf.empty())
@@ -126,12 +125,6 @@ void codec2_data_init(my_struct* cdc2) // to be used once
     cdc2->SPEECH_BYTES = cdc2->SPEECH_SIZE*sizeof(short);
     cdc2->codec2_state = codec2_create(mode);
     codec2_set_lpc_post_filter(cdc2->codec2_state, 1, 0, 0.8, 0.6);
-    cdc2->READ_FLAG = READING;
-    cdc2->WRITE_FLAG = WRITING_DONE;
-    cdc2->speech_in = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
-    cdc2->speech_out = (int16_t*)calloc(cdc2->SPEECH_SIZE,sizeof(int16_t));
-    cdc2->frame_bits_in = (uint8_t*)calloc(cdc2->FRAME_SIZE,sizeof(uint8_t));
-    cdc2->frame_bits_out = (uint8_t*)calloc(cdc2->FRAME_SIZE,sizeof(uint8_t));
 }
 
 void codec2_data_deinit(my_struct * cdc2)
