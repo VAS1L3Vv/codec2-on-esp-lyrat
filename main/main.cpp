@@ -1,63 +1,84 @@
 #include "project_header.h"
-
-    my_struct cdc2; 
-    FastAudioFIFO speech_buf;
-    FastAudioFIFO frame_buf;
-    void read_dma(void * arg);
-    SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
-    esp_timer_handle_t timer;
-    gpio_set_pull_mode(GPIO_NUM_26, GPIO_PULLDOWN_ONLY);
+my_struct cdc2; 
+FastAudioFIFO speech_buf;
+FastAudioFIFO frame_buf;
+void read_dma(void * arg);
+SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
+esp_timer_handle_t timer;
 QueueHandle_t queue = xQueueCreate(3, sizeof(long));
 
 extern "C" void app_main()
 {
-    static const char *TAG = "STARTED MAIN";
-    esp_log_level_set("*", ESP_LOG_WARN);
-    esp_log_level_set(TAG, ESP_LOG_INFO);
-
-    // TaskHandle_t Tx_Handle = NULL;
-    // cdc2.mode = CODEC2_MODE_700B;
-    audio_element_handle_t i2s_reader;
-    audio_element_handle_t i2s_writer;
-    audio_board_handle_t board_handle = audio_board_init();
-    i2s_stream_cfg_t i2s_read_cfg = I2S_STREAM_CUSTOM_READ_CFG();
-    i2s_stream_cfg_t i2s_write_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
-    // esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
-    // audio_element_info_t i2s_info = I2S_INFO();
-    i2s_pin_config_t pins;
-    audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START); 
     esp_timer_early_init();
-    i2s_reader = i2s_stream_init(&i2s_read_cfg);
-    // pins.bck_io_num = 5;
-    // pins.data_in_num = 26;
-    // pins.ws_io_num = 25;
-    // ESP_ERROR_CHECK(i2s_set_pin(I2S_NUM_0, &pins));
-    i2s_writer = i2s_stream_init(&i2s_write_cfg); 
+    audio_hal_codec_config_t es8388_config = AUDIO_CODEC_INMP441_CONFIG();
+   audio_hal_codec_i2s_iface_t i2s_iface_cfg;
+    i2s_iface_cfg.mode = AUDIO_HAL_MODE_SLAVE;
+    i2s_iface_cfg.fmt = AUDIO_HAL_I2S_LEFT;
+    i2s_iface_cfg.samples = AUDIO_HAL_08K_SAMPLES;
+    i2s_iface_cfg.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
+    
+   es_i2s_clock_t clock_cfg;
+    clock_cfg.sclk_div = MCLK_DIV_1;
+    clock_cfg.lclk_div = LCLK_DIV_256;
+    
+   es8388_init(&es8388_config);
+    es8388_config_fmt(ES_MODULE_DAC, ES_I2S_LEFT);
+    es8388_i2s_config_clock(clock_cfg);
+    es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS);
+    es8388_config_i2s(AUDIO_HAL_CODEC_MODE_DECODE, &i2s_iface_cfg);
+    es8388_set_voice_volume((int)40);
+    es8388_set_mic_gain(MIC_GAIN_MIN);
+    es8388_set_voice_mute(0);
+    es8388_config_adc_input(ADC_INPUT_MIN);
+    es8388_config_dac_output(DAC_OUTPUT_ALL);
+    es8388_start(ES_MODULE_DAC);
+    es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE,AUDIO_HAL_CTRL_START);
+    
+   i2s_config_t i2sr_cfg;
+    i2sr_cfg.mode = I2S_MODE_MASTER;    
+    i2sr_cfg.sample_rate = 8000;
+    i2sr_cfg.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
+    // i2sr_cfg.channel_format = I2S_CHANNEL_FMT_ALL_LEFT;
+    i2sr_cfg.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
+    i2sr_cfg.communication_format = I2S_COMM_FORMAT_STAND_I2S;
+    i2sr_cfg.intr_alloc_flags = ESP_INTR_FLAG_LEVEL2;
+    i2sr_cfg.dma_buf_count = 2;
+    i2sr_cfg.dma_buf_len = 300;
+    i2sr_cfg.use_apll = 1;
+    i2sr_cfg.tx_desc_auto_clear = 1;
+    i2sr_cfg.fixed_mclk = 3072000;
+    i2sr_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_DEFAULT;
+    i2sr_cfg.bits_per_chan = I2S_BITS_PER_CHAN_DEFAULT;    
+    
+   i2s_pin_config_t pins;
+    pins.mck_io_num = 0;
+    pins.bck_io_num = 5;
+    pins.data_in_num = 26;
+    pins.ws_io_num = 25;
+    pins.data_out_num = 26;
+    // i2s_set_pin(I2S_NUM_0, &pins);
+    i2s_driver_install(I2S_NUM_0, &i2sr_cfg, 0, NULL);
+    i2s_set_sample_rates(I2S_NUM_0, 8000);
+    i2s_set_clk(I2S_NUM_0, 8000, 16, I2S_CHANNEL_MONO);
+    i2s_start(I2S_NUM_0);
     // codec2_data_init(&cdc2);                 
     // xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
     // uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
-    int * speech_in = (int*)malloc(80000*sizeof(int));
-    int * speech_out = (int*)malloc(80000*sizeof(int));
+    int16_t * speech_in = (int16_t*)malloc(40000*sizeof(int16_t));
+    int16_t * speech_out = (int16_t*)malloc(40000*sizeof(int16_t));
     size_t bytes_written;
-    size_t bytes_read;
-    
+        size_t bytes_read;
     while(1)
     {
-        for(int i = 3; i > 0; i--)
-        {
-            printf("Recording in %u...\n",i);
-            vTaskDelay(1000/portTICK_PERIOD_MS);
-        }
             printf("RECORDNIG\n");
-        i2s_read(I2S_NUM_0, (int*)speech_in, 80000*sizeof(int), &bytes_read, portMAX_DELAY);
+            vTaskDelay(1000/portTICK_PERIOD_MS);
+        i2s_read(I2S_NUM_0, (int*)speech_in, 40000*2, &bytes_read, portMAX_DELAY);
             printf("PLAYING..\n");
             vTaskDelay(500/portTICK_PERIOD_MS);
-        i2s_write(I2S_NUM_1, (int*)speech_in, 80000*sizeof(int), &bytes_written, portMAX_DELAY);
+        i2s_write(I2S_NUM_0, (int*)speech_in, 40000*2, &bytes_written, portMAX_DELAY);
         printf("REPEAT.\n");
         vTaskDelay(500/portTICK_PERIOD_MS);
     }
-    audio_element_deinit(i2s_reader);
-    audio_element_deinit(i2s_writer);
     codec2_data_deinit(&cdc2);
 }
 
@@ -147,32 +168,4 @@ void codec2_data_deinit(my_struct * cdc2)
     free(cdc2->frame_bits_out);
     free(cdc2->frame_bits_in);
     codec2_destroy(cdc2->codec2_state);
-}
-
-static esp_err_t i2s_mono_fix(int bits, uint8_t *sbuff, uint32_t len)
-{
-    static const char *TAG = "mono fix";
-    if (bits == 16) {
-        int16_t *temp_buf = (int16_t *)sbuff;
-        int16_t temp_box;
-        int k = len >> 1;
-        for (int i = 0; i < k; i += 2) {
-            temp_box = temp_buf[i];
-            temp_buf[i] = temp_buf[i + 1];
-            temp_buf[i + 1] = temp_box;
-        }
-    } else if (bits == 32) {
-        int32_t *temp_buf = (int32_t *)sbuff;
-        int32_t temp_box;
-        int k = len >> 2;
-        for (int i = 0; i < k; i += 4) {
-            temp_box = temp_buf[i];
-            temp_buf[i] = temp_buf[i + 1];
-            temp_buf[i + 1] = temp_box;
-        }
-    } else {
-        ESP_LOGI(TAG, "%s %dbits is not supported", __func__, bits);
-        return ESP_FAIL;
-    }
-    return ESP_OK;
 }

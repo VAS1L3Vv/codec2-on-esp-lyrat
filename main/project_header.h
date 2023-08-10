@@ -25,16 +25,17 @@
 #include "driver/gpio.h"
 #include "FastAudioFIFO.h"
 #include "rom/ets_sys.h"
-#include "esp_timer.h"                                    
+#include "esp_timer.h"    
+#include "es8388.h"                                
 
 #define I2S_STREAM_CUSTOM_READ_CFG() {                                          \
     .type = AUDIO_STREAM_READER,                                                \
     .i2s_config = {                                                             \
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
-        .sample_rate = 8000,                                                    \
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_24BIT,                           \
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,                           \
-        .communication_format = I2S_COMM_FORMAT_I2S,                      \
+        .sample_rate = 44100,                                                    \
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                           \
+        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,                            \
+        .communication_format = I2S_COMM_FORMAT_I2S_MSB,                            \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
         .dma_buf_count = 3,                                                     \
         .dma_buf_len = 600,                                                     \
@@ -61,12 +62,12 @@
      .type = AUDIO_STREAM_WRITER,                                               \
     .i2s_config = {                                                             \
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX),      \
-        .sample_rate = 8000,                                                    \
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_24BIT,                           \
+        .sample_rate = 44100,                                                    \
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                           \
         .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,                           \
-        .communication_format = I2S_COMM_FORMAT_I2S,                      \
+        .communication_format = I2S_COMM_FORMAT_I2S_MSB,                      \
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,          \
-        .dma_buf_count = 2,                                                     \
+        .dma_buf_count = 3,                                                     \
         .dma_buf_len = 600,                                                     \
         .use_apll = true,                                                       \
         .tx_desc_auto_clear = true,                                             \
@@ -83,7 +84,7 @@
     .multi_out_num = 0,                                                         \
     .uninstall_drv = true,                                                      \
     .need_expand = 0,                                                           \
-    .expand_src_bits = I2S_BITS_PER_SAMPLE_16BIT,                               \
+    .expand_src_bits = I2S_BITS_PER_SAMPLE_32BIT,                               \
     .buffer_len = 600,                                                          \
 }
 
@@ -98,6 +99,30 @@
     .uri = NULL,                          \
     .codec_fmt = ESP_CODEC_TYPE_UNKNOW    \
 }
+
+#define AUDIO_CODEC_CODEC2_CONFIG(){                    \
+        .adc_input  = AUDIO_HAL_ADC_INPUT_LINE1,          \
+        .dac_output = AUDIO_HAL_DAC_OUTPUT_ALL,         \
+        .codec_mode = AUDIO_HAL_CODEC_MODE_BOTH,        \
+        .i2s_iface = {                                  \
+            .mode = AUDIO_HAL_MODE_SLAVE,               \
+            .fmt = AUDIO_HAL_I2S_RIGHT,                \
+            .samples = AUDIO_HAL_08K_SAMPLES,           \
+            .bits = AUDIO_HAL_BIT_LENGTH_16BITS,        \
+        },                                              \
+};
+
+#define AUDIO_CODEC_INMP441_CONFIG(){                     \
+        .adc_input  = AUDIO_HAL_ADC_INPUT_LINE1,          \
+        .dac_output = AUDIO_HAL_DAC_OUTPUT_LINE1,         \
+        .codec_mode = AUDIO_HAL_CODEC_MODE_DECODE,        \
+        .i2s_iface = {                                    \
+            .mode = AUDIO_HAL_MODE_SLAVE,                 \
+            .fmt = AUDIO_HAL_I2S_LEFT,                    \
+            .samples = AUDIO_HAL_08K_SAMPLES,             \
+            .bits = AUDIO_HAL_BIT_LENGTH_16BITS,          \
+        },                                                \
+};
 
 
 typedef struct user_struct
