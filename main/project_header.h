@@ -22,6 +22,7 @@
 #include "LoRa.h"
 #include <ButterworthFilter.h>
 #include "driver/timer.h"
+#include "driver/gpio.h"
 #include "FastAudioFIFO.h"
 #include "rom/ets_sys.h"
 #include "esp_timer.h"                                    
