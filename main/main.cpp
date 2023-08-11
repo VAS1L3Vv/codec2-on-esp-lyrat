@@ -26,12 +26,12 @@ extern "C" void app_main()
     i2sr_cfg.sample_rate = 8000;
     i2sr_cfg.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
     i2sr_cfg.channel_format = I2S_CHANNEL_FMT_ALL_LEFT;
-    i2sr_cfg.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
+    // i2sr_cfg.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
     i2sr_cfg.communication_format = I2S_COMM_FORMAT_STAND_I2S;
     i2sr_cfg.intr_alloc_flags = ESP_INTR_FLAG_LEVEL2;
     i2sr_cfg.dma_buf_count = 2;
     i2sr_cfg.dma_buf_len = 300;
-    i2sr_cfg.use_apll = 1;
+    i2sr_cfg.use_apll = 0;
     i2sr_cfg.tx_desc_auto_clear = 1;
     i2sr_cfg.fixed_mclk = 3072000;
     i2sr_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_DEFAULT;
@@ -49,14 +49,14 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(es8388_config_fmt(ES_MODULE_DAC, ES_I2S_LEFT));
     ESP_ERROR_CHECK(es8388_i2s_config_clock(clock_cfg));
     ESP_ERROR_CHECK(es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS));
-    ESP_ERROR_CHECK(es8388_config_i2s(AUDIO_HAL_CODEC_MODE_DECODE, &i2s_iface_cfg));
+    ESP_ERROR_CHECK(es8388_config_i2s(AUDIO_HAL_CODEC_MODE_BOTH, &i2s_iface_cfg));
     ESP_ERROR_CHECK(es8388_set_voice_volume((int)40));
-    ESP_ERROR_CHECK(es8388_set_mic_gain(MIC_GAIN_MIN));
+    ESP_ERROR_CHECK(es8388_set_mic_gain(MIC_GAIN_MAX));
     ESP_ERROR_CHECK(es8388_set_voice_mute(0));
-    ESP_ERROR_CHECK(es8388_config_adc_input(ADC_INPUT_MIN));
+    ESP_ERROR_CHECK(es8388_config_adc_input(ADC_INPUT_MAX));
     ESP_ERROR_CHECK(es8388_config_dac_output(DAC_OUTPUT_ALL));
     ESP_ERROR_CHECK(es8388_start(ES_MODULE_DAC));
-    ESP_ERROR_CHECK(es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE,AUDIO_HAL_CTRL_START));
+    ESP_ERROR_CHECK(es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_BOTH,AUDIO_HAL_CTRL_START));
 
     ESP_ERROR_CHECK_WITHOUT_ABORT(i2s_set_pin(I2S_NUM_0, &pins));
     ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2sr_cfg, 0, NULL));

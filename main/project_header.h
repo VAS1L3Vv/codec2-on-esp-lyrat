@@ -115,7 +115,7 @@
 #define AUDIO_CODEC_INMP441_CONFIG(){                     \
         .adc_input  = AUDIO_HAL_ADC_INPUT_ALL,          \
         .dac_output = AUDIO_HAL_DAC_OUTPUT_ALL,         \
-        .codec_mode = AUDIO_HAL_CODEC_MODE_DECODE,        \
+        .codec_mode = AUDIO_HAL_CODEC_MODE_BOTH,        \
         .i2s_iface = {                                    \
             .mode = AUDIO_HAL_MODE_SLAVE,                 \
             .fmt = AUDIO_HAL_I2S_LEFT,                    \
