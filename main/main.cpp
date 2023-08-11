@@ -51,16 +51,18 @@ extern "C" void app_main()
     i2sr_cfg.bits_per_chan = I2S_BITS_PER_CHAN_DEFAULT;    
     
    i2s_pin_config_t pins;
-    pins.mck_io_num = 0;
-    pins.bck_io_num = 5;
-    pins.data_in_num = 26;
-    pins.ws_io_num = 25;
-    pins.data_out_num = 26;
-    // i2s_set_pin(I2S_NUM_0, &pins);
+   pins.mck_io_num = 0;
+   pins.bck_io_num = 5;
+   pins.data_in_num = 26;
+   pins.ws_io_num = 25;
+   pins.data_out_num = 26;
+    i2s_set_pin(I2S_NUM_0, &pins);
+
     i2s_driver_install(I2S_NUM_0, &i2sr_cfg, 0, NULL);
     i2s_set_sample_rates(I2S_NUM_0, 8000);
     i2s_set_clk(I2S_NUM_0, 8000, 16, I2S_CHANNEL_MONO);
     i2s_start(I2S_NUM_0);
+
     // codec2_data_init(&cdc2);                 
     // xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
     // uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
