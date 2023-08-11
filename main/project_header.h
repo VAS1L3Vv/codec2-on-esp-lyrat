@@ -113,8 +113,8 @@
 };
 
 #define AUDIO_CODEC_INMP441_CONFIG(){                     \
-        .adc_input  = AUDIO_HAL_ADC_INPUT_LINE1,          \
-        .dac_output = AUDIO_HAL_DAC_OUTPUT_LINE1,         \
+        .adc_input  = AUDIO_HAL_ADC_INPUT_ALL,          \
+        .dac_output = AUDIO_HAL_DAC_OUTPUT_ALL,         \
         .codec_mode = AUDIO_HAL_CODEC_MODE_DECODE,        \
         .i2s_iface = {                                    \
             .mode = AUDIO_HAL_MODE_SLAVE,                 \

@@ -10,35 +10,22 @@ QueueHandle_t queue = xQueueCreate(3, sizeof(long));
 extern "C" void app_main()
 {
     esp_timer_early_init();
-    audio_hal_codec_config_t es8388_config = AUDIO_CODEC_INMP441_CONFIG();
-   audio_hal_codec_i2s_iface_t i2s_iface_cfg;
+    
+    audio_hal_codec_i2s_iface_t i2s_iface_cfg;
     i2s_iface_cfg.mode = AUDIO_HAL_MODE_SLAVE;
     i2s_iface_cfg.fmt = AUDIO_HAL_I2S_LEFT;
     i2s_iface_cfg.samples = AUDIO_HAL_08K_SAMPLES;
     i2s_iface_cfg.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
     
-   es_i2s_clock_t clock_cfg;
+    es_i2s_clock_t clock_cfg;
     clock_cfg.sclk_div = MCLK_DIV_1;
     clock_cfg.lclk_div = LCLK_DIV_256;
     
-   es8388_init(&es8388_config);
-    es8388_config_fmt(ES_MODULE_DAC, ES_I2S_LEFT);
-    es8388_i2s_config_clock(clock_cfg);
-    es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS);
-    es8388_config_i2s(AUDIO_HAL_CODEC_MODE_DECODE, &i2s_iface_cfg);
-    es8388_set_voice_volume((int)40);
-    es8388_set_mic_gain(MIC_GAIN_MIN);
-    es8388_set_voice_mute(0);
-    es8388_config_adc_input(ADC_INPUT_MIN);
-    es8388_config_dac_output(DAC_OUTPUT_ALL);
-    es8388_start(ES_MODULE_DAC);
-    es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE,AUDIO_HAL_CTRL_START);
-    
-   i2s_config_t i2sr_cfg;
-    i2sr_cfg.mode = I2S_MODE_MASTER;    
+    i2s_config_t i2sr_cfg;
+    i2sr_cfg.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX);    
     i2sr_cfg.sample_rate = 8000;
     i2sr_cfg.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
-    // i2sr_cfg.channel_format = I2S_CHANNEL_FMT_ALL_LEFT;
+    i2sr_cfg.channel_format = I2S_CHANNEL_FMT_ALL_LEFT;
     i2sr_cfg.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
     i2sr_cfg.communication_format = I2S_COMM_FORMAT_STAND_I2S;
     i2sr_cfg.intr_alloc_flags = ESP_INTR_FLAG_LEVEL2;
@@ -49,27 +36,43 @@ extern "C" void app_main()
     i2sr_cfg.fixed_mclk = 3072000;
     i2sr_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_DEFAULT;
     i2sr_cfg.bits_per_chan = I2S_BITS_PER_CHAN_DEFAULT;    
-    
-   i2s_pin_config_t pins;
-   pins.mck_io_num = 0;
-   pins.bck_io_num = 5;
-   pins.data_in_num = 26;
-   pins.ws_io_num = 25;
-   pins.data_out_num = 26;
-    i2s_set_pin(I2S_NUM_0, &pins);
 
-    i2s_driver_install(I2S_NUM_0, &i2sr_cfg, 0, NULL);
-    i2s_set_sample_rates(I2S_NUM_0, 8000);
-    i2s_set_clk(I2S_NUM_0, 8000, 16, I2S_CHANNEL_MONO);
-    i2s_start(I2S_NUM_0);
+    i2s_pin_config_t pins;
+    pins.mck_io_num = 0;
+    pins.bck_io_num = 5;
+    pins.data_in_num = 26;
+    pins.ws_io_num = 25;
+    // pins.data_out_num = 35;
 
-    // codec2_data_init(&cdc2);                 
+    audio_hal_codec_config_t es8388_config = AUDIO_CODEC_INMP441_CONFIG();
+    ESP_ERROR_CHECK(es8388_init(&es8388_config));
+    ESP_ERROR_CHECK(es8388_config_fmt(ES_MODULE_DAC, ES_I2S_LEFT));
+    ESP_ERROR_CHECK(es8388_i2s_config_clock(clock_cfg));
+    ESP_ERROR_CHECK(es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS));
+    ESP_ERROR_CHECK(es8388_config_i2s(AUDIO_HAL_CODEC_MODE_DECODE, &i2s_iface_cfg));
+    ESP_ERROR_CHECK(es8388_set_voice_volume((int)40));
+    ESP_ERROR_CHECK(es8388_set_mic_gain(MIC_GAIN_MIN));
+    ESP_ERROR_CHECK(es8388_set_voice_mute(0));
+    ESP_ERROR_CHECK(es8388_config_adc_input(ADC_INPUT_MIN));
+    ESP_ERROR_CHECK(es8388_config_dac_output(DAC_OUTPUT_ALL));
+    ESP_ERROR_CHECK(es8388_start(ES_MODULE_DAC));
+    ESP_ERROR_CHECK(es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE,AUDIO_HAL_CTRL_START));
+
+    ESP_ERROR_CHECK_WITHOUT_ABORT(i2s_set_pin(I2S_NUM_0, &pins));
+    ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2sr_cfg, 0, NULL));
+    ESP_ERROR_CHECK(i2s_set_sample_rates(I2S_NUM_0, 8000));
+    ESP_ERROR_CHECK(i2s_set_clk(I2S_NUM_0, 8000, 16, I2S_CHANNEL_MONO));
+    ESP_ERROR_CHECK(i2s_start(I2S_NUM_0));
+    i2s_stream_cfg_t i2sw_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
+    audio_element_handle_t i2s_writer =     i2s_stream_init(&i2sw_cfg);
+    // codec2_data_init(&cdc2);                
     // xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
     // uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
     int16_t * speech_in = (int16_t*)malloc(40000*sizeof(int16_t));
     int16_t * speech_out = (int16_t*)malloc(40000*sizeof(int16_t));
     size_t bytes_written;
-        size_t bytes_read;
+    size_t bytes_read;
+
     while(1)
     {
             printf("RECORDNIG\n");
