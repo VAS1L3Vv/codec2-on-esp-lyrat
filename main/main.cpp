@@ -58,13 +58,15 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(es8388_start(ES_MODULE_DAC));
     ESP_ERROR_CHECK(es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_BOTH,AUDIO_HAL_CTRL_START));
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(i2s_set_pin(I2S_NUM_0, &pins));
-    ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2sr_cfg, 0, NULL));
-    ESP_ERROR_CHECK(i2s_set_sample_rates(I2S_NUM_0, 8000));
-    ESP_ERROR_CHECK(i2s_set_clk(I2S_NUM_0, 8000, 16, I2S_CHANNEL_MONO));
-    ESP_ERROR_CHECK(i2s_start(I2S_NUM_0));
-    i2s_stream_cfg_t i2sw_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
-    audio_element_handle_t i2s_writer =     i2s_stream_init(&i2sw_cfg);
+    // ESP_ERROR_CHECK_WITHOUT_ABORT(i2s_set_pin(I2S_NUM_0, &pins));
+    // ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2sr_cfg, 0, NULL));
+    // ESP_ERROR_CHECK(i2s_set_sample_rates(I2S_NUM_0, 8000));
+    // ESP_ERROR_CHECK(i2s_set_clk(I2S_NUM_0, 8000, 16, I2S_CHANNEL_MONO));
+    // ESP_ERROR_CHECK(i2s_start(I2S_NUM_0));
+    i2s_stream_cfg_t i2s_w_cfg = I2S_STREAM_CUSTOM_WRITE_CFG();
+    audio_element_handle_t i2s_writer =     i2s_stream_init(&i2s_w_cfg);
+    i2s_stream_cfg_t i2s_r_cfg = I2S_STREAM_CUSTOM_READ_CFG();
+    audio_element_handle_t i2S_reader =     i2s_stream_init(&i2s_r_cfg);
     // codec2_data_init(&cdc2);                
     // xTaskCreatePinnedToCore(read_dma,"Read_DMA", 50*1024, NULL, 3, &Tx_Handle, 1);
     // uint8_t * frame_bits = (uint8_t*)calloc(cdc2.FRAME_SIZE,sizeof(uint8_t));
@@ -80,7 +82,7 @@ extern "C" void app_main()
         i2s_read(I2S_NUM_0, (int*)speech_in, 40000*2, &bytes_read, portMAX_DELAY);
             printf("PLAYING..\n");
             vTaskDelay(500/portTICK_PERIOD_MS);
-        i2s_write(I2S_NUM_0, (int*)speech_in, 40000*2, &bytes_written, portMAX_DELAY);
+        i2s_write(I2S_NUM_1, (int*)speech_in, 40000*2, &bytes_written, portMAX_DELAY);
         printf("REPEAT.\n");
         vTaskDelay(500/portTICK_PERIOD_MS);
     }
